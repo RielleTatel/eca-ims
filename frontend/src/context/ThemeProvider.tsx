@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 
 import { ThemeContext, type Theme } from '@/context/theme-context'
 
-const THEME_STORAGE_KEY = 'siteao-theme'
+const THEME_STORAGE_KEY = 'eca-theme'
 
 function getInitialTheme(): Theme {
   const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)

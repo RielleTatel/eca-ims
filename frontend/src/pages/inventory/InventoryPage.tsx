@@ -320,8 +320,8 @@ export function InventoryPage() {
         title={isAdmin ? 'Inventory Management' : 'Inventory'}
         description={
           isAdmin
-            ? 'Search, maintain, and monitor SITEAO inventory records.'
-            : 'Browse active SITEAO equipment and current availability.'
+            ? 'Search, maintain, and monitor ECA inventory records.'
+            : 'Browse active ECA equipment and current availability.'
         }
         actions={
           isAdmin ? (

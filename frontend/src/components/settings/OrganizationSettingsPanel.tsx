@@ -74,7 +74,7 @@ export function OrganizationSettingsPanel() {
     }
 
     if (normalizedName.length < 2) {
-      setError('Enter the full name of the SITEAO Governor.')
+      setError('Enter the full name of the ECA Governor.')
       return
     }
 
@@ -123,12 +123,12 @@ export function OrganizationSettingsPanel() {
         <CardContent className="space-y-5">
           {error ? <InlineError message={error} /> : null}
           <div className="max-w-xl space-y-2">
-            <Label htmlFor="siteao-governor-name">SITEAO Governor *</Label>
+            <Label htmlFor="eca-governor-name">ECA Governor *</Label>
             {isLoading ? (
               <Skeleton className="h-9 w-full" />
             ) : (
               <Input
-                id="siteao-governor-name"
+                id="eca-governor-name"
                 value={governorName}
                 onChange={(event) => setGovernorName(event.target.value)}
                 maxLength={150}
@@ -138,7 +138,7 @@ export function OrganizationSettingsPanel() {
               />
             )}
             <p className="text-xs text-muted-foreground">
-              The title “SITEAO Governor” stays fixed; only the person’s name changes.
+              The title “ECA Governor” stays fixed; only the person’s name changes.
             </p>
           </div>
           {!isLoading && settings ? (

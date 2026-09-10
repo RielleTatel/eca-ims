@@ -70,7 +70,7 @@ const defaultReportFilters: InventoryReportFilters = {
 }
 
 function fallbackFilename(extension: 'pdf' | 'csv') {
-  return `siteao-inventory-report-${new Date().toISOString().slice(0, 10)}.${extension}`
+  return `eca-inventory-report-${new Date().toISOString().slice(0, 10)}.${extension}`
 }
 
 async function validateDownloadBlob(blob: Blob, format: 'pdf' | 'csv') {
@@ -597,7 +597,7 @@ export function InventoryReportPage() {
                 {report?.report.notedBy.name ?? '—'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {report?.report.notedBy.title ?? 'SITEAO Governor'}
+                {report?.report.notedBy.title ?? 'ECA Governor'}
               </p>
             </div>
           </div>

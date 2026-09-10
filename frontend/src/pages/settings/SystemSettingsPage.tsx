@@ -73,7 +73,7 @@ export function SystemSettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="System Settings"
-        description="Manage report details, SITEAO committees, and committee accounts."
+        description="Manage report details, ECA committees, and committee accounts."
       />
 
       <div

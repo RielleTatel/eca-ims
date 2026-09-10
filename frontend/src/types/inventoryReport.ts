@@ -16,7 +16,7 @@ export interface InventoryReportMetadata {
   preparedBy: 'Logistics Team'
   notedBy: {
     name: string
-    title: 'SITEAO Governor'
+    title: 'ECA Governor'
   }
 }
 

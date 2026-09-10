@@ -8,7 +8,7 @@ import {
 import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-import siteaoLogo from '@/assets/siteao-logo.png'
+import ecaLogo from '@/assets/eca-logo.png'
 import { InlineError } from '@/components/states/InlineError'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -78,14 +78,14 @@ export function LoginPage() {
       <CardHeader className="auth-card-header gap-2 px-6 pt-7 text-center sm:px-8 sm:pt-8">
         <div className="auth-card-logo group/logo mx-auto mb-3 flex size-24 items-center justify-center">
           <img
-            src={siteaoLogo}
-            alt="SITEAO logo"
-            className="size-full scale-110 object-contain drop-shadow-md transition-[transform,filter] duration-500 ease-out group-hover/logo:-translate-y-1 group-hover/logo:scale-[1.18] group-hover/logo:rotate-2 group-hover/logo:drop-shadow-[0_12px_18px_rgba(255,106,56,0.3)] motion-reduce:transition-none motion-reduce:group-hover/logo:translate-y-0 motion-reduce:group-hover/logo:scale-110 motion-reduce:group-hover/logo:rotate-0"
+            src={ecaLogo}
+            alt="El Consejo Atenista seal"
+            className="size-full scale-110 object-contain drop-shadow-md transition-[transform,filter] duration-500 ease-out group-hover/logo:-translate-y-1 group-hover/logo:scale-[1.18] group-hover/logo:rotate-2 group-hover/logo:drop-shadow-[0_12px_18px_rgba(201,162,39,0.35)] motion-reduce:transition-none motion-reduce:group-hover/logo:translate-y-0 motion-reduce:group-hover/logo:scale-110 motion-reduce:group-hover/logo:rotate-0"
           />
         </div>
-        <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
+        <CardTitle className="font-heading text-2xl font-semibold tracking-tight">Welcome back</CardTitle>
         <CardDescription className="leading-6">
-          Sign in with your SITEAO account to continue.
+          Sign in with your ECA account to continue.
         </CardDescription>
       </CardHeader>
       <CardContent className="auth-card-content px-6 pb-7 sm:px-8 sm:pb-8">

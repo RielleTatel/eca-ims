@@ -54,13 +54,13 @@ export function TopNavbar({ navigation, user }: TopNavbarProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-64 border-0 p-0">
-          <SheetTitle className="sr-only">SITEAO navigation</SheetTitle>
+          <SheetTitle className="sr-only">ECA navigation</SheetTitle>
           <AppSidebar navigation={navigation} user={user} onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold">
-          {user.role === 'SUPER_ADMIN' ? 'SITEAO Administration' : user.committee?.name}
+          {user.role === 'SUPER_ADMIN' ? 'ECA Administration' : user.committee?.name}
         </p>
         <p className="hidden text-xs text-muted-foreground sm:block">Operations workspace</p>
       </div>

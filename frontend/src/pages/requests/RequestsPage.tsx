@@ -215,7 +215,7 @@ export function RequestsPage() {
         description={
           isCommittee
             ? 'Track borrowing requests submitted by your committee.'
-            : 'Review and process borrowing requests from SITEAO committees.'
+            : 'Review and process borrowing requests from ECA committees.'
         }
         actions={
           isCommittee ? (

@@ -3,9 +3,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Poppins", "HK Grotesk", "Segoe UI", system-ui, sans-serif;
-  --font-heading: "Montserrat", "Satoshi", "Poppins", system-ui, sans-serif;
-  --font-subheading: "Solomon Sans", "Poppins", system-ui, sans-serif;
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-heading: "Fraunces", "Georgia", serif;
+  --font-subheading: "Fraunces", "Georgia", serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -34,9 +34,10 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
-  --color-brand-orange: #ff4400;
-  --color-brand-navy: #0c1a4d;
-  --color-brand-light-blue: #48adbf;
+  --color-brand-navy: #0c1547;
+  --color-brand-navy-deep: #060a1c;
+  --color-brand-gold: #c9a227;
+  --color-brand-parchment: #f7f4ec;
   --radius-xs: calc(var(--radius) * 0.5);
   --radius-sm: calc(var(--radius) * 0.75);
   --radius-md: calc(var(--radius) * 0.875);
@@ -45,75 +46,75 @@
 }
 
 :root {
-  --radius: 0.75rem;
-  --background: #fefefe;
-  --foreground: #121622;
+  --radius: 0.6rem;
+  --background: #f7f4ec;
+  --foreground: #14192b;
   --card: #ffffff;
-  --card-foreground: #121622;
+  --card-foreground: #14192b;
   --popover: #ffffff;
-  --popover-foreground: #121622;
-  --primary: #d93600;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f4f8;
-  --secondary-foreground: #0c1a4d;
-  --muted: #f4f5f7;
-  --muted-foreground: #596273;
-  --accent: #fff1e8;
-  --accent-foreground: #9e2b00;
-  --destructive: #d10b02;
-  --border: #e1e5eb;
-  --input: #d5dae2;
-  --ring: #ff4400;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #121622;
-  --sidebar-accent: #fff0e8;
-  --sidebar-accent-foreground: #9e2b00;
-  --success: #145e79;
+  --popover-foreground: #14192b;
+  --primary: #0c1547;
+  --primary-foreground: #f7f4ec;
+  --secondary: #eef1f8;
+  --secondary-foreground: #0c1547;
+  --muted: #efeadb;
+  --muted-foreground: #5b5f6e;
+  --accent: #f4ecd2;
+  --accent-foreground: #7a5c0a;
+  --destructive: #a8281f;
+  --border: #e2ddc9;
+  --input: #d8d2bd;
+  --ring: #c9a227;
+  --sidebar: #0c1547;
+  --sidebar-foreground: #f2efe3;
+  --sidebar-accent: #17205c;
+  --sidebar-accent-foreground: #e8c96b;
+  --success: #1f6f5c;
   --success-foreground: #ffffff;
-  --warning: #ffa200;
-  --warning-foreground: #121622;
-  --info: #48adbf;
-  --info-foreground: #0c1a4d;
-  --brand-gradient-primary: linear-gradient(90deg, #ff0d01, #fce003);
-  --brand-gradient-secondary: linear-gradient(135deg, #48adbf, #0c1a4d);
+  --warning: #b9790a;
+  --warning-foreground: #1c1200;
+  --info: #3a5a9c;
+  --info-foreground: #ffffff;
+  --brand-gradient-primary: linear-gradient(90deg, #0c1547, #1c2f6b);
+  --brand-gradient-secondary: linear-gradient(135deg, #c9a227, #e8c96b);
   --auth-panel-background:
-    radial-gradient(circle at 8% 18%, rgb(255 68 0 / 0.07), transparent 26rem),
-    linear-gradient(110deg, #fffdfa 0%, #fefefe 55%, #f3f7ff 100%);
-  --auth-hero-background: linear-gradient(145deg, #0c1a4d 0%, #102768 56%, #071137 100%);
+    radial-gradient(circle at 8% 18%, rgb(201 162 39 / 0.08), transparent 26rem),
+    linear-gradient(110deg, #fbf9f2 0%, #f7f4ec 55%, #f1ecdc 100%);
+  --auth-hero-background: linear-gradient(145deg, #0c1547 0%, #16205a 56%, #060a1c 100%);
 }
 
 .dark {
-  --background: #0e111a;
-  --foreground: #fefefe;
-  --card: #171c29;
-  --card-foreground: #fefefe;
-  --popover: #171c29;
-  --popover-foreground: #fefefe;
-  --primary: #d93600;
-  --primary-foreground: #ffffff;
-  --secondary: #182344;
-  --secondary-foreground: #edf5ff;
-  --muted: #1d2432;
-  --muted-foreground: #aeb7c6;
-  --accent: #38241b;
-  --accent-foreground: #ffb089;
-  --destructive: #d9362f;
-  --border: #2d3545;
-  --input: #394254;
-  --ring: #ff6a38;
-  --sidebar: #101828;
-  --sidebar-foreground: #f5f7fb;
-  --sidebar-accent: #37241d;
-  --sidebar-accent-foreground: #ffb089;
-  --success: #48adbf;
-  --success-foreground: #07151a;
-  --warning: #ffc14d;
-  --warning-foreground: #211400;
-  --info: #62bfd0;
-  --info-foreground: #07151a;
+  --background: #0a0e1c;
+  --foreground: #f2efe3;
+  --card: #11162a;
+  --card-foreground: #f2efe3;
+  --popover: #11162a;
+  --popover-foreground: #f2efe3;
+  --primary: #c9a227;
+  --primary-foreground: #14192b;
+  --secondary: #1a2340;
+  --secondary-foreground: #e8e3d0;
+  --muted: #161b2e;
+  --muted-foreground: #a7a894;
+  --accent: #2a2211;
+  --accent-foreground: #e8c96b;
+  --destructive: #c23b2f;
+  --border: #262c44;
+  --input: #2c3350;
+  --ring: #d4af5a;
+  --sidebar: #070b1a;
+  --sidebar-foreground: #efe9d4;
+  --sidebar-accent: #1a2350;
+  --sidebar-accent-foreground: #e8c96b;
+  --success: #2f8f78;
+  --success-foreground: #06120d;
+  --warning: #d9a441;
+  --warning-foreground: #1c1200;
+  --info: #6f8fc9;
+  --info-foreground: #08101f;
   --auth-panel-background:
-    radial-gradient(circle at 8% 18%, rgb(255 106 56 / 0.08), transparent 26rem),
-    linear-gradient(110deg, #10121a 0%, #0e111a 58%, #101a30 100%);
+    radial-gradient(circle at 8% 18%, rgb(212 175 90 / 0.1), transparent 26rem),
+    linear-gradient(110deg, #0a0e1c 0%, #0d1224 58%, #0a1220 100%);
 }
 
 @layer base {
@@ -141,7 +142,7 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--primary) 24%, transparent);
+    background: color-mix(in srgb, var(--ring) 30%, transparent);
   }
 }
 
@@ -189,7 +190,7 @@
     background: var(--auth-hero-background);
     box-shadow:
       inset 1px 0 rgb(255 255 255 / 0.08),
-      -24px 0 64px rgb(12 26 77 / 0.1);
+      -24px 0 64px rgb(6 10 28 / 0.35);
   }
 
   @media (min-width: 64rem) and (max-height: 53.125rem) {
@@ -223,14 +224,6 @@
 
     .auth-form {
       gap: 0.75rem;
-    }
-
-    .auth-game-area {
-      margin-top: 0.75rem;
-    }
-
-    .auth-game-divider {
-      margin-bottom: 0.5rem;
     }
 
     .auth-footer {

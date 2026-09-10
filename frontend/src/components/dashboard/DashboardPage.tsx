@@ -136,7 +136,7 @@ export function DashboardPage() {
         title={isAdmin ? 'Logistics Dashboard' : 'Committee Dashboard'}
         description={
           isAdmin
-            ? 'A live overview of SITEAO inventory, borrowing activity, and committee access.'
+            ? 'A live overview of ECA inventory, borrowing activity, and committee access.'
             : `A live overview of ${user.committee?.name ?? 'your committee'} requests and borrowed items.`
         }
       />
@@ -154,7 +154,7 @@ export function DashboardPage() {
             description={
               dashboard
                 ? `Updated ${new Date(dashboard.generatedAt).toLocaleString()}`
-                : 'Loading activity from SITEAO OpsTracker'
+                : 'Loading activity from El Consejo Atenista'
             }
           >
             {!dashboard ? (
@@ -166,7 +166,7 @@ export function DashboardPage() {
             ) : dashboard.recentActivity.length === 0 ? (
               <EmptyState
                 title="No recent activity"
-                description="New SITEAO inventory and borrowing activity will appear here."
+                description="New ECA inventory and borrowing activity will appear here."
               />
             ) : (
               <ol className="divide-y divide-border">

@@ -42,7 +42,7 @@ export function CommitteeAccountsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Committees & Accounts"
-        description="Manage SITEAO committees and their shared role-restricted accounts."
+        description="Manage ECA committees and their shared role-restricted accounts."
       />
       <CommitteesPanel
         committees={committees}

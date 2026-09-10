@@ -273,7 +273,7 @@ export function CategoriesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Manage Categories"
-        description="Organize inventory items with backend-validated SITEAO categories."
+        description="Organize inventory items with backend-validated ECA categories."
         actions={
           <Button type="button" onClick={openCreateDialog}>
             <Plus aria-hidden="true" />

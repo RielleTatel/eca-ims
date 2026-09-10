@@ -8,7 +8,7 @@ export function ProtectedRoute() {
   const location = useLocation()
 
   if (isInitializing) {
-    return <PageLoading label="Restoring your SITEAO session" />
+    return <PageLoading label="Restoring your ECA session" />
   }
 
   if (!isAuthenticated) {

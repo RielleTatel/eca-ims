@@ -8,7 +8,7 @@ export function RootRedirect() {
   const { user, isInitializing } = useAuth()
 
   if (isInitializing) {
-    return <PageLoading label="Opening SITEAO OpsTracker" />
+    return <PageLoading label="Opening El Consejo Atenista" />
   }
 
   return <Navigate to={user ? getHomePath(user.role) : '/login'} replace />
