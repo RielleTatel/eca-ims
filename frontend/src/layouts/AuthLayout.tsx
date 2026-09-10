@@ -65,12 +65,7 @@ export function AuthLayout() {
         </div>
 
         <div className="absolute inset-x-8 bottom-20 z-20 text-center xl:inset-x-12">
-          <h1 className="font-heading text-[clamp(1.6rem,2.6vw,2.75rem)] font-semibold leading-tight tracking-tight text-brand-parchment">
-            Inventory &amp; borrowing,
-            <br />
-            kept in good order.
-          </h1>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-brand-parchment/65">
+          <p className="mx-auto max-w-md font-heading text-lg leading-7 text-brand-parchment/80">
             The council's system of record for equipment, requests, and committee accounts.
           </p>
         </div>
