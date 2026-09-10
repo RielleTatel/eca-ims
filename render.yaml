@@ -1,5 +1,5 @@
 databases:
-  - name: siteao-opstracker-db
+  - name: eca-db
     databaseName: siteao_opstracker
     user: siteao_opstracker
     plan: free
@@ -7,7 +7,7 @@ databases:
 
 services:
   - type: web
-    name: siteao-opstracker-api
+    name: eca-api
     runtime: node
     plan: free
     region: singapore
