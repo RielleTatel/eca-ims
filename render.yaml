@@ -3,6 +3,7 @@ databases:
     databaseName: siteao_opstracker
     user: siteao_opstracker
     plan: free
+    region: singapore
 
 services:
   - type: web
@@ -11,8 +12,8 @@ services:
     plan: free
     region: singapore
     rootDir: backend
-    buildCommand: npm ci && npm run prisma:generate && npm run prisma:deploy && npm run build
-    startCommand: npm start
+    buildCommand: npm ci && npm run prisma:generate && npm run build
+    startCommand: npm run prisma:deploy && npm start
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
