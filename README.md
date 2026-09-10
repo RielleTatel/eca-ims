@@ -46,7 +46,7 @@ The repository is configured as a two-service deployment:
 4. Set the `CLIENT_URL` environment variable to the final Vercel URL, for example
    `https://your-frontend.vercel.app`.
 5. Set `SEED_ADMIN_USERNAME` and `SEED_ADMIN_PASSWORD` to the initial administrator credentials.
-6. Deploy. Render runs Prisma migrations before starting the API.
+6. Deploy. Render runs Prisma migrations during the build before starting the API.
 
 The backend health check is available at `/api/health`.
 
