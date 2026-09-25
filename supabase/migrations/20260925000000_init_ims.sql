@@ -840,6 +840,9 @@ begin
       'generatedAt', now()
     );
   end if;
+end;
+$$;
+
 -- Atomic RPC: Admin Create Committee Account
 create or replace function public.admin_create_committee_account(
   p_username text,
