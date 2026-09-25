@@ -1,69 +1,81 @@
-# SITEAO OpsTracker
+# SITEAO OpsTracker (ECA-IMS)
 
-SITEAO OpsTracker is an inventory and borrowing management system for a student organization.
+SITEAO OpsTracker is an inventory and borrowing management system for student organizations, built with **React** and **Supabase**.
 
-## Tech Stack
+## Architecture
 
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- shadcn/ui
-- React Router
-- Axios
-- TanStack Table
-- Chart.js
-
-### Backend
-
-- Node.js
-- Express
-- Prisma ORM
-- PostgreSQL
-
-## Project Structure
+The project is structured as a **single-directory unified React + Supabase application**:
 
 ```text
-siteao-opstracker/
-├── frontend/
-└── backend/
+eca-ims/
+├── src/                          # React application (Vite, TypeScript, Tailwind CSS, Radix UI)
+│   ├── components/               # UI and domain components
+│   ├── context/                  # AuthContext with native Supabase Auth listener
+│   ├── lib/
+│   │   ├── supabase.ts           # Supabase client (anon key only)
+│   │   └── database.types.ts     # Supabase TypeScript schema definitions
+│   ├── services/                 # Supabase query and atomic RPC wrappers
+│   ├── pages/                    # React Router pages
+│   └── types/                    # Domain data types
+├── supabase/
+│   ├── migrations/               # SQL schema, RLS policies, RPC stored procedures, triggers
+│   │   └── 20260925000000_init_ims.sql
+│   └── seed.sql                  # Seed data for system settings, committees, categories
+├── index.html
+├── package.json
+└── vite.config.ts
+```
+
+## Security & Architecture Highlights
+
+- **Row Level Security (RLS):** Enabled on every database table. Authorization is enforced strictly by PostgreSQL policies (`auth.uid()`, `is_super_admin()`, and `committee_id`).
+- **Secret Isolation:** Only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are used on the frontend. Privileged database actions are performed via `SECURITY DEFINER` functions; the `service_role` key is never exposed to the client.
+- **Atomic Multi-Step Operations:** Critical inventory workflows (request creation, stock allocation upon approval, condition adjustment upon return) are executed inside atomic PostgreSQL stored procedures (`create_borrowing_request`, `approve_borrowing_request`, `return_borrowing_request`).
+- **Server-Side Constraints:** Stock integrity is guaranteed via database check constraints (`check (available_quantity <= total_quantity)`), foreign keys, and unique indexes.
+- **Tamper-Resistant Auditing:** All modifications produce immutable records in `public.audit_logs` and `public.inventory_transactions`.
+- **Client-Side PDF & CSV Export:** Reports are generated directly in the browser via `jspdf` and CSV encoders, removing the need for a heavy server-side headless browser.
+
+## Getting Started
+
+### 1. Configure Supabase
+
+1. Create a project in [Supabase](https://supabase.com).
+2. Open the **SQL Editor** in the Supabase Dashboard.
+3. Run [`supabase/migrations/20260925000000_init_ims.sql`](file:///Users/tatelgabrielle/Desktop/PROJECTS/eca-ims/supabase/migrations/20260925000000_init_ims.sql) to create the schema, tables, RLS policies, and RPCs.
+4. Run [`supabase/seed.sql`](file:///Users/tatelgabrielle/Desktop/PROJECTS/eca-ims/supabase/seed.sql) to seed default system settings, committees, and categories.
+5. Create your initial Super Admin user in **Authentication > Users** (e.g. email `admin@siteao.local`), then in the SQL Editor insert a matching profile:
+   ```sql
+   insert into public.profiles (id, username, role, is_active)
+   values ('<USER_AUTH_UUID>', 'admin', 'SUPER_ADMIN', true);
+   ```
+
+### 2. Environment Variables
+
+Create `.env` in the project root:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-publishable-key
+```
+
+### 3. Install & Run Locally
+
+```bash
+npm install
+npm run dev
+```
+
+### 4. Build & Typecheck
+
+```bash
+npm run typecheck
+npm run build
 ```
 
 ## Deployment
 
-The repository is configured as a two-service deployment:
-
-- **Frontend:** Vercel, with the Vercel project root set to `frontend`
-- **Backend and database:** Render, using the root-level `render.yaml` Blueprint
-
-### Deploy the backend on Render
-
-1. Push this repository to GitHub.
-2. In Render, choose **New > Blueprint** and select the repository.
-3. Render will create the `siteao-opstracker-api` web service and a PostgreSQL database from `render.yaml`.
-4. Set the `CLIENT_URL` environment variable to the final Vercel URL, for example
-   `https://your-frontend.vercel.app`.
-5. Set `SEED_ADMIN_USERNAME` and `SEED_ADMIN_PASSWORD` to the initial administrator credentials.
-6. Deploy. Render runs Prisma migrations when the API starts, after the database is reachable.
-
-The backend health check is available at `/api/health`.
-
-### Deploy the frontend on Vercel
-
-1. In Vercel, import the same repository.
-2. Set **Root Directory** to `frontend`.
-3. Use the detected Vite settings:
-   - Build command: `npm run build`
-   - Output directory: `dist`
-4. Add the environment variable:
-
-   ```env
-   VITE_API_BASE_URL=https://your-render-service.onrender.com/api
-   ```
-
-5. Deploy and copy the resulting Vercel URL into Render's `CLIENT_URL`.
-
-The frontend already includes `frontend/vercel.json` so React Router routes fall back to
-`index.html`. Do not commit either production `.env` file or administrator credentials.
+Deploy the root directory to **Vercel** or **Cloudflare Pages**:
+- **Framework Preset:** Vite
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **Environment Variables:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
