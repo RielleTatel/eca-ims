@@ -8,7 +8,12 @@
     "typecheck": "tsc -b --pretty false",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:seed": "node supabase/setup-local-dev.mjs",
+    "test:local": "node supabase/test-local-db.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
