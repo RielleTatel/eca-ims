@@ -20,8 +20,8 @@ Database RPCs and authenticated table access cover authorization, password gates
 - [x] Database authorization and deletion
 - [x] Protected account endpoint and password lifecycle
 - [x] Accounts, password and inventory UI
-- [ ] Verification and Standards/Spec review
-- [ ] Commit to the current branch
+- [x] Verification and Standards/Spec review
+- [x] Commit to the current branch
 
 ## Deployment
 
@@ -32,7 +32,7 @@ Apply migrations in timestamp order. The STAFF enum migration must commit before
 
 - Typechecking (including the account handler), ESLint, and production build passed. Vite reports the existing large-bundle warning.
 - Full database regressions passed with both closed client grants and legacy broad defaults. The database tests use real PostgreSQL RLS, constraints and RPCs, with minimal Auth/storage fixtures.
-- All 14 account HTTP tests passed against a mocked external Supabase API. A local Supabase stack is not running, so actual Auth/Edge deployment smoke testing remains a rollout step.
+- All 15 account HTTP tests passed against a mocked external Supabase API. A local Supabase stack is not running, so actual Auth/Edge deployment smoke testing remains a rollout step.
 - These new staff migrations and Edge Function have **not** been applied to the hosted project. The earlier application-table permissions fix was applied separately.
 - Apply `20260927020000_staff_role.sql` and commit it, then apply `20260927030000_staff_accounts_item_deletion.sql`. If `20260927010000_application_table_permissions.sql` is still pending in another environment, apply it first. Do not rerun the original schema or borrowing migration against an existing installation.
 - Deploy `account-management` using the command in README before deploying the frontend. For local development run `npx supabase functions serve account-management --no-verify-jwt` alongside Vite if the local function is not being served.
@@ -41,3 +41,5 @@ Apply migrations in timestamp order. The STAFF enum migration must commit before
 Password updates use a database lease to prevent concurrent resets/changes. During a failed or ambiguous Auth update, access remains restricted; retry after five minutes. Passwords are never written to application tables or audit logs. Login is limited to ten attempts per normalized identifier per fifteen minutes (successful attempts also count).
 
 Function packaging follows [Supabase's per-function deno.json guidance](https://supabase.com/changelog/30291-use-deno-json-configuration-file-in-edge-functions). Public login and protected account actions share a gateway; protected actions validate the supplied token with Auth and check the database profile.
+
+Review results and the resolved username edge case are recorded in [the local review](admin-accounts-review.md). Implementation is committed on `main`; no remote push or hosted feature deployment was performed.

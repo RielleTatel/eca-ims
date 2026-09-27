@@ -59,7 +59,7 @@ export function createAccountHandler(config: Configuration) {
         const initialPassword = password(body)
         if (!/^[a-z0-9][a-z0-9_.-]{2,49}$/.test(username)) throw new RequestError('Username must be 3–50 letters, numbers, dots, hyphens or underscores.')
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new RequestError('Enter a valid email address.')
-        const { data: existing } = await admin.from('profiles').select('id').ilike('username', username).maybeSingle()
+        const { data: existing } = await admin.from('profiles').select('id').ilike('username', username.replaceAll('_', '\\_')).maybeSingle()
         if (existing) throw new RequestError('Username is already in use.')
         const { data, error } = await admin.auth.admin.createUser({ email, password: initialPassword, email_confirm: true })
         if (error || !data.user) throw new RequestError(error?.message || 'Account could not be created.')

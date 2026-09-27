@@ -18,7 +18,12 @@ function boundary(t, overrides = {}) {
     if (method !== 'GET') writes.push({ path, body, method })
     const response = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
     if (path === '/auth/v1/user') return response({ id: actorId, email: 'admin@example.test' })
-    if (path === '/rest/v1/profiles') return response(url.searchParams.get('select') === 'id' ? null : { ...profile, ...overrides.profile })
+    if (path === '/rest/v1/profiles') {
+      if (url.searchParams.get('select') !== 'id') return response({ ...profile, ...overrides.profile })
+      // Supabase's ILIKE treats an unescaped underscore as one arbitrary character.
+      const matchesOtherUsername = overrides.existingSimilarUsername && url.searchParams.get('username') === 'ilike.alex_lee'
+      return response(matchesOtherUsername ? { id: targetId } : null)
+    }
     if (path === '/rest/v1/rpc/resolve_account_login') return response(overrides.email === undefined ? 'staff@example.test' : overrides.email)
     if (path === '/auth/v1/token') return overrides.badPassword ? response({ msg: 'Invalid login credentials' }, 400) : response({ access_token: 'access', refresh_token: 'refresh', expires_in: 3600, token_type: 'bearer', user: { id: actorId } })
     if (path === '/auth/v1/logout') return response({})
@@ -61,6 +66,11 @@ test('failed profile provisioning compensates only the new Auth identity', async
   const writes = boundary(t, { provisionFail: true })
   assert.equal((await invoke({ action: 'create', username: 'new.staff', email: 'new@example.test', password: strongPassword })).status, 400)
   assert.deepEqual(writes.filter((write) => write.method === 'DELETE').map((write) => write.path), [`/auth/v1/admin/users/${targetId}`])
+})
+test('a literal underscore does not collide with a different existing username', async (t) => {
+  boundary(t, { existingSimilarUsername: 'alexxlee' })
+  const response = await invoke({ action: 'create', username: 'alex_lee', email: 'alex@example.test', password: strongPassword })
+  assert.equal(response.status, 201)
 })
 test('username login returns session tokens without exposing resolved email', async (t) => {
   boundary(t)

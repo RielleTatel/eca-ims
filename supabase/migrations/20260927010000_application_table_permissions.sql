@@ -1,6 +1,6 @@
 -- Do not depend on a project's default privileges. Both table grants and
 -- row-level policies are required for authenticated browser requests.
--- This migration is safe to reapply after a manual SQL Editor deployment.
+-- Reapplicable before later migrations; never reapply out of timestamp order.
 do $$
 declare v_table text;
 begin
