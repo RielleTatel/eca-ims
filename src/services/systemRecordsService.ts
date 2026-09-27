@@ -236,6 +236,12 @@ export const systemRecordsService = {
       filters: {
         actions: [
           'CREATE_ITEM',
+          'DELETE_ITEM',
+          'CREATE_ACCOUNT',
+          'RESET_ACCOUNT_PASSWORD',
+          'CHANGE_PASSWORD',
+          'DEACTIVATE_ACCOUNT',
+          'REACTIVATE_ACCOUNT',
           'UPDATE_ITEM',
           'RECORD_BORROWING',
           'UPDATE_BORROWING',

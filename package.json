@@ -14,7 +14,8 @@
     "supabase:status": "supabase status",
     "supabase:seed": "node supabase/setup-local-dev.mjs",
     "test:local": "node supabase/test-local-db.mjs",
-    "test:db": "node supabase/test-borrowing-db.mjs"
+    "test:db": "node supabase/test-borrowing-db.mjs",
+    "test:accounts": "node --test supabase/tests/account-endpoint.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

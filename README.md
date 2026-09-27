@@ -35,9 +35,19 @@ The local setup script creates `admin@siteao.local` with the demo password `Pass
 
 Apply **all pending migrations in order**, including `supabase/migrations/20260927000000_student_borrowing_tracking.sql`, before serving the updated frontend. For a running local stack use `npx supabase migration up`. For a linked hosted project use your normal migration deployment process, such as `npx supabase db push`. Do not reset an existing database to upgrade it.
 
+Also apply `supabase/migrations/20260927010000_application_table_permissions.sql`. It explicitly grants the browser role the reads and admin configuration writes required by the application, while retaining row-level security and RPC-only borrowing/stock changes. Newer projects may not automatically grant table privileges; without this migration, pages fail with `42501: permission denied for table ...`. The permissions migration can safely be reapplied. If earlier migrations were run manually in SQL Editor, reconcile their migration history before using CLI deployment so existing schema migrations are not rerun.
+
 The tracking migration preserves borrowing IDs and inventory transaction links. Existing approved/borrowed records become active loans without another stock deduction. Completed records remain completed; pending/rejected/cancelled requests become read-only archived history. Original request metadata is retained, and imported records visibly indicate missing student IDs rather than inventing them. Former accounts are disabled and retained solely as historical actors. Committee tables and old request RPCs are removed.
 
 See [borrowing design and migration notes](docs/borrowing-tracking.md).
+
+For staff account management and permanent inventory deletion, apply `20260927020000_staff_role.sql` and then `20260927030000_staff_accounts_item_deletion.sql` in separate committed migrations. Deploy the account endpoint **before deploying this frontend**, because username/email login now uses it:
+
+```bash
+npx supabase functions deploy account-management --project-ref YOUR_PROJECT_REF --no-verify-jwt
+```
+
+The endpoint validates JWTs itself for protected actions; only login is public. Supabase provides the function's server-side service key. No service key belongs in `.env` variables prefixed with `VITE_`. Staff accounts are created directly by a super admin with an initial password, with no invitation email. See [account and deletion specification](docs/admin-accounts-and-item-deletion.md) for authorization and rollout details.
 
 ## Verification
 
@@ -46,10 +56,15 @@ npm run typecheck
 npm run lint
 npm run build
 npm run test:db
+npm run test:accounts
 npm run test:local
 ```
 
 `test:db` requires PostgreSQL's `initdb`, `pg_ctl`, and `psql` on PATH (or `POSTGRES_BIN_DIR`). It creates a private temporary PostgreSQL instance, applies the real migrations to upgrade fixtures, tests authorization/atomicity/stock accounting/concurrent checkouts, then shuts down and removes its own temporary database. It does not connect to your application database. Only Supabase's auth and storage surfaces are stubbed.
+
+The default database test does not grant client table privileges implicitly. Run `TEST_LEGACY_DEFAULT_GRANTS=1 npm run test:db` to also verify projects with older, broad default grants; the permissions migration must produce the same restricted access in either environment.
+
+`test:accounts` tests the account HTTP handler against a mocked external Supabase boundary, including authorization, credential validation and failure handling. It does not replace a deployed Auth integration smoke test.
 
 `test:local` requires the running, migrated local Supabase stack and provisioned demo admin. It checks the actual Auth/PostgREST/RPC integration with a temporary inventory fixture and removes its test data afterward.
 

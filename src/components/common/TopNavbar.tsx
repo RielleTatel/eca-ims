@@ -60,7 +60,7 @@ export function TopNavbar({ navigation, user }: TopNavbarProps) {
       </Sheet>
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold">
-          ECA Administration
+          ECA Inventory
         </p>
         <p className="hidden text-xs text-muted-foreground sm:block">Operations workspace</p>
       </div>
@@ -79,10 +79,11 @@ export function TopNavbar({ navigation, user }: TopNavbarProps) {
             <DropdownMenuLabel>
               <span className="block truncate">{user.username}</span>
               <span className="block truncate text-xs font-normal text-muted-foreground">
-                Administrator
+                {user.role === 'SUPER_ADMIN' ? 'Super admin' : 'Staff'}
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate('/change-password')}>Change password</DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => void handleLogout()}
               disabled={isLoggingOut}

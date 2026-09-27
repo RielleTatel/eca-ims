@@ -48,6 +48,10 @@ const SORT_FIELD_MAP: Record<ItemListParams['sortBy'], string> = {
 }
 
 export const itemService = {
+  async delete(itemId: string): Promise<void> {
+    const { error } = await supabase.rpc('delete_inventory_item', { p_item_id: itemId })
+    if (error) throw error
+  },
   async list(params: ItemListParams, signal?: AbortSignal) {
     const { page, limit, search, categoryId, condition, isActive, availableOnly, sortBy, sortOrder } = params
     const from = (page - 1) * limit

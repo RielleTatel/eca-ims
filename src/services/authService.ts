@@ -1,21 +1,14 @@
 import type { AuthUser, LoginCredentials } from '@/context/auth-context'
+import { accountAction } from '@/services/accountService'
 import { supabase } from '@/lib/supabase'
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const rawInput = credentials.username.trim()
-    const email = rawInput.includes('@')
-      ? rawInput.toLowerCase()
-      : `${rawInput.toLowerCase()}@siteao.local`
-
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password: credentials.password,
+    const tokens = await accountAction<{ access_token: string; refresh_token: string }>({
+      action: 'login', identifier: credentials.username.trim(), password: credentials.password,
     })
-
-    if (authError || !authData.user) {
-      throw new Error(authError?.message || 'Invalid username or password.')
-    }
+    const { error } = await supabase.auth.setSession(tokens)
+    if (error) throw error
 
     const user = await this.getCurrentUser()
     if (!user) {
@@ -41,12 +34,14 @@ export const authService = {
         id,
         username,
         role,
-        is_active
+        is_active,
+        must_change_password,
+        password_operation
       `)
       .eq('id', authUser.id)
       .single()
 
-    if (error || !profile || !profile.is_active || profile.role !== 'SUPER_ADMIN') {
+    if (error || !profile || !profile.is_active || (profile.role !== 'SUPER_ADMIN' && profile.role !== 'STAFF')) {
       return null
     }
 
@@ -54,6 +49,7 @@ export const authService = {
       id: profile.id,
       username: profile.username,
       role: profile.role,
+      mustChangePassword: profile.must_change_password || Boolean(profile.password_operation),
     }
   },
 

@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { LogisticsLayout } from '@/layouts/LogisticsLayout'
 import { AuditLogsPage } from '@/pages/audit/AuditLogsPage'
+import { AccountsPage } from '@/pages/accounts/AccountsPage'
+import { ChangePasswordPage } from '@/pages/auth/ChangePasswordPage'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { CategoriesPage } from '@/pages/categories/CategoriesPage'
 import { LogisticsDashboardPage } from '@/pages/dashboard/LogisticsDashboardPage'
@@ -38,8 +40,9 @@ export function AppRoutes() {
           </Route>
         </Route>
         <Route element={<ProtectedRoute />}>
+          <Route element={<AuthLayout />}><Route path="/change-password" element={<ChangePasswordPage />} /></Route>
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
-          <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN']} />}>
+          <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'STAFF']} />}>
             <Route path="/logistics" element={<LogisticsLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<LogisticsDashboardPage />} />
@@ -53,7 +56,10 @@ export function AppRoutes() {
               <Route path="requests" element={<Navigate to="/logistics/borrowings" replace />} />
               <Route path="requests/:requestId" element={<LegacyBorrowingRedirect />} />
               <Route path="categories" element={<CategoriesPage />} />
-              <Route path="settings" element={<SystemSettingsPage />} />
+              <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN']} />}>
+                <Route path="settings" element={<SystemSettingsPage />} />
+                <Route path="accounts" element={<AccountsPage />} />
+              </Route>
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="reports" element={<InventoryReportPage />} />
               <Route path="audit-logs" element={<AuditLogsPage />} />

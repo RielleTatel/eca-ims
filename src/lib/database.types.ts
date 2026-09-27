@@ -1,5 +1,5 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
-export type UserRole = 'SUPER_ADMIN' | 'ARCHIVED'
+export type UserRole = 'SUPER_ADMIN' | 'STAFF' | 'ARCHIVED'
 export type ItemCondition = 'GOOD' | 'FAIR' | 'DAMAGED' | 'UNDER_REPAIR' | 'LOST'
 export type BorrowingStatus = 'ACTIVE' | 'RETURNED' | 'ARCHIVED'
 export type ReturnCondition = 'GOOD' | 'FAIR' | 'DAMAGED' | 'LOST'
@@ -25,7 +25,7 @@ export type BorrowingItemRow = Timestamps & {
 export interface Database {
   public: {
     Tables: {
-      profiles: Table<Timestamps & { id: string; username: string; role: UserRole; is_active: boolean }, 'id' | 'username'>
+      profiles: Table<Timestamps & { id: string; username: string; role: UserRole; is_active: boolean; must_change_password: boolean; password_operation: string | null }, 'id' | 'username'>
       categories: Table<Timestamps & { id: string; name: string; description: string | null; is_active: boolean; created_by: string | null }, 'name', [Relationship<'categories_created_by_fkey', 'created_by', 'profiles'>]>
       items: Table<Timestamps & {
         id: string; item_code: string; category_id: string; item_name: string; description: string | null
@@ -53,6 +53,9 @@ export interface Database {
     }
     Views: { [_ in never]: never }
     Functions: {
+      delete_inventory_item: { Args: { p_item_id: string }; Returns: undefined }
+      list_staff_accounts: { Args: Record<PropertyKey, never>; Returns: Json }
+      set_staff_active: { Args: { p_target: string; p_active: boolean }; Returns: undefined }
       record_borrowing: {
         Args: { p_borrower_name: string; p_student_id: string; p_contact_details: string | null; p_purpose: string; p_borrow_date: string; p_expected_return_date: string; p_additional_notes: string | null; p_items: Json }
         Returns: Json

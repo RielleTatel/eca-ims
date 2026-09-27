@@ -39,7 +39,7 @@ const emptyPagination: Pagination = { page: 1, limit: 10, total: 0, totalPages: 
 export function ItemDetailsPage() {
   const { itemId } = useParams()
   const { user } = useAuth()
-  const isAdmin = user?.role === 'SUPER_ADMIN'
+  const canManageInventory = user?.role === 'SUPER_ADMIN' || user?.role === 'STAFF'
   const { notify } = useToast()
   const [repairQuantity, setRepairQuantity] = useState(1)
   const [isRepairing, setIsRepairing] = useState(false)
@@ -205,7 +205,7 @@ export function ItemDetailsPage() {
                 Back
               </Link>
             </Button>
-            {isAdmin ? (
+            {canManageInventory ? (
               <Button asChild>
                 <Link to={`/logistics/inventory/${item.id}/edit`}>
                   <Pencil aria-hidden="true" />

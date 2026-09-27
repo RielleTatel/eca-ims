@@ -14,7 +14,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ navigation, user, className, onNavigate }: AppSidebarProps) {
-  const workspace = 'Administration'
+  const workspace = 'Operations'
   const navigationGroups = navigation.reduce<
     Array<{ label: NavigationItem['section']; items: NavigationItem[] }>
   >((groups, item) => {
@@ -91,7 +91,7 @@ export function AppSidebar({ navigation, user, className, onNavigate }: AppSideb
           variant="secondary"
           className="mt-2 border border-brand-gold/25 bg-brand-gold/10 text-brand-gold"
         >
-          Admin
+          {user.role === 'SUPER_ADMIN' ? 'Super admin' : 'Staff'}
         </Badge>
       </div>
     </aside>

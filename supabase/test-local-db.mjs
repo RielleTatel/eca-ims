@@ -35,7 +35,7 @@ async function run() {
   }))
   borrowingId = borrowing.id
   assert.equal(checked(await admin.from('items').select('available_quantity').eq('id', itemId).single()).available_quantity, 2)
-  assert.equal(checked(await anonymous.from('borrowings').select('id').eq('id', borrowingId)).length, 0)
+  assert.equal((await anonymous.from('borrowings').select('id').eq('id', borrowingId)).error?.code, '42501')
   assert.ok((await admin.from('borrowings').update({ status: 'RETURNED' }).eq('id', borrowingId)).error)
   const line = checked(await admin.from('borrowing_items').select('id').eq('borrowing_id', borrowingId).single())
   checked(await admin.rpc('record_borrowing_return', { p_borrowing_id: borrowingId, p_returns: [

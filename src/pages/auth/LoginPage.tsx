@@ -55,7 +55,7 @@ export function LoginPage() {
     setError(null)
 
     try {
-      await login({ username: username.trim(), password })
+      const user = await login({ username: username.trim(), password })
       const state = location.state as LoginLocationState | null
       const attemptedPath = state?.from?.pathname
       const safeDestination =
@@ -64,7 +64,7 @@ export function LoginPage() {
           ? attemptedPath
           : getHomePath()
 
-      navigate(safeDestination, { replace: true })
+      navigate(user.mustChangePassword ? '/change-password' : safeDestination, { replace: true })
     } catch (loginError) {
       setError(getApiErrorMessage(loginError, 'Unable to sign in. Check your credentials and try again.'))
     } finally {
@@ -84,7 +84,7 @@ export function LoginPage() {
         </div>
         <CardTitle className="font-heading text-2xl font-semibold tracking-tight">Welcome back</CardTitle>
         <CardDescription className="leading-6">
-          Sign in with your ECA administrator account to continue.
+          Sign in with your ECA account to continue.
         </CardDescription>
       </CardHeader>
       <CardContent className="auth-card-content px-6 pb-7 sm:px-8 sm:pb-8">
@@ -92,7 +92,7 @@ export function LoginPage() {
           {error ? <InlineError message={error} /> : null}
           <div className="space-y-2">
             <Label htmlFor="username" className="inline-flex items-center gap-0.5">
-              Username<span className="text-destructive" aria-hidden="true">*</span>
+              Username or email<span className="text-destructive" aria-hidden="true">*</span>
             </Label>
             <Input
               id="username"

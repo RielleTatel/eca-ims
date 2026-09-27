@@ -22,10 +22,10 @@ select 'PASS: data-preserving upgrade' as result;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', true);
 set local role authenticated;
 select pg_temp.assert_true((select count(*) = 0 from public.borrowings), 'Former account can read student data');
-select pg_temp.expect_error($q$select public.record_borrowing('Student', 'ID-1', null, 'Unauthorized test', current_date, current_date, null, '[]')$q$, 'Administrator access required');
+select pg_temp.expect_error($q$select public.record_borrowing('Student', 'ID-1', null, 'Unauthorized test', current_date, current_date, null, '[]')$q$, 'Operational access required');
 reset role;
 set local role anon;
-select pg_temp.assert_true((select count(*) = 0 from public.borrowings), 'Anonymous access exposes student data');
+select pg_temp.expect_error($q$select count(*) from public.borrowings$q$, 'permission denied');
 select pg_temp.expect_error($q$select public.record_borrowing('Student', 'ID-1', null, 'Unauthorized test', current_date, current_date, null, '[]')$q$, 'permission denied');
 reset role;
 

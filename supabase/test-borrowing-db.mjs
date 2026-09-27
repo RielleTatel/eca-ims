@@ -22,7 +22,7 @@ try {
     create role anon; create role authenticated; create role service_role bypassrls;
     create schema auth; create schema storage; create schema extensions;
     create extension pgcrypto with schema extensions;
-    create table auth.users (id uuid primary key);
+    create table auth.users (id uuid primary key, email text);
     create function auth.uid() returns uuid language sql stable as $$
       select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
     $$;
@@ -30,43 +30,55 @@ try {
     create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
     create table storage.objects (id uuid primary key, bucket_id text);
     alter table storage.objects enable row level security;
-    alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-    alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on tables to service_role;
+    alter default privileges in schema public grant all on sequences to service_role;
   `)
+  if (process.env.TEST_LEGACY_DEFAULT_GRANTS === '1') {
+    await sql(`alter default privileges in schema public grant all on tables to anon, authenticated;`)
+  }
   const migrations = (await readdir('supabase/migrations')).filter((name) => name.endsWith('.sql')).sort()
   for (const [index, migration] of migrations.entries()) {
     await file(join('supabase/migrations', migration))
     if (index === 0) await file('supabase/tests/legacy-borrowing-fixture.sql')
   }
   await file('supabase/seed.sql')
-  const result = await file('supabase/tests/borrowing-tracking.sql')
-  for (const line of result.stdout.split('\n')) if (line.startsWith('PASS:')) console.log(line)
+  if (process.env.TEST_SQL) {
+    const focused = await file(process.env.TEST_SQL)
+    for (const line of focused.stdout.split('\n')) if (line.startsWith('PASS:')) console.log(line)
+  } else {
+    const access = await file('supabase/tests/application-access.sql')
+    for (const line of access.stdout.split('\n')) if (line.startsWith('PASS:')) console.log(line)
+    const result = await file('supabase/tests/borrowing-tracking.sql')
+    for (const line of result.stdout.split('\n')) if (line.startsWith('PASS:')) console.log(line)
 
-  // Two checkouts contend for the last unit. Only one may succeed.
-  await sql(`insert into public.items (id, item_code, category_id, item_name, total_quantity, available_quantity, storage_location)
-    values ('90000000-0000-0000-0000-000000000099', 'CONCURRENCY', '22222222-2222-2222-2222-222222222201', 'Last microphone', 1, 1, 'Test storage');`)
-  const checkout = `select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
-    set role authenticated;
-    select public.record_borrowing('Concurrent Student', 'TEST-CONCURRENT', null, 'Concurrency verification',
-      (now() at time zone 'Asia/Manila')::date, (now() at time zone 'Asia/Manila')::date, null,
-      '[{"itemId":"90000000-0000-0000-0000-000000000099","quantity":1}]');`
-  // Hold the item lock so both checkout sessions have to contend for it.
-  const lockFile = join(directory, 'lock.sql')
-  await writeFile(lockFile, `begin; select id from public.items where item_code = 'CONCURRENCY' for update; select pg_sleep(1); commit;`)
-  const blocker = file(lockFile)
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  const outcomes = await Promise.allSettled([sql(checkout), sql(checkout)])
-  await blocker
-  if (outcomes.filter((outcome) => outcome.status === 'fulfilled').length !== 1) throw new Error('Concurrent checkouts did not produce exactly one success.')
-  const rejected = outcomes.find((outcome) => outcome.status === 'rejected')
-  if (!rejected.reason.stderr.includes('Insufficient stock')) throw rejected.reason
-  await sql(`do $$ begin
-    if (select available_quantity from public.items where item_code = 'CONCURRENCY') <> 0
-      or (select count(*) from public.borrowing_items where item_id = '90000000-0000-0000-0000-000000000099') <> 1
-    then raise exception 'Concurrency left invalid inventory balances.'; end if;
-  end $$;`)
-  console.log('PASS: concurrent checkout of the last unit')
-  console.log('All borrowing database checks passed in an isolated temporary database.')
+    // Two checkouts contend for the last unit. Only one may succeed.
+    await sql(`insert into public.items (id, item_code, category_id, item_name, total_quantity, available_quantity, storage_location)
+      values ('90000000-0000-0000-0000-000000000099', 'CONCURRENCY', '22222222-2222-2222-2222-222222222201', 'Last microphone', 1, 1, 'Test storage');`)
+    const checkout = `select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+      set role authenticated;
+      select public.record_borrowing('Concurrent Student', 'TEST-CONCURRENT', null, 'Concurrency verification',
+        (now() at time zone 'Asia/Manila')::date, (now() at time zone 'Asia/Manila')::date, null,
+        '[{"itemId":"90000000-0000-0000-0000-000000000099","quantity":1}]');`
+    // Hold the item lock so both checkout sessions have to contend for it.
+    const lockFile = join(directory, 'lock.sql')
+    await writeFile(lockFile, `begin; select id from public.items where item_code = 'CONCURRENCY' for update; select pg_sleep(1); commit;`)
+    const blocker = file(lockFile)
+    await new Promise((resolve) => setTimeout(resolve, 150))
+    const outcomes = await Promise.allSettled([sql(checkout), sql(checkout)])
+    await blocker
+    if (outcomes.filter((outcome) => outcome.status === 'fulfilled').length !== 1) throw new Error('Concurrent checkouts did not produce exactly one success.')
+    const rejected = outcomes.find((outcome) => outcome.status === 'rejected')
+    if (!rejected.reason.stderr.includes('Insufficient stock')) throw rejected.reason
+    await sql(`do $$ begin
+      if (select available_quantity from public.items where item_code = 'CONCURRENCY') <> 0
+        or (select count(*) from public.borrowing_items where item_id = '90000000-0000-0000-0000-000000000099') <> 1
+      then raise exception 'Concurrency left invalid inventory balances.'; end if;
+    end $$;`)
+    console.log('PASS: concurrent checkout of the last unit')
+    const accounts = await file('supabase/tests/accounts-and-deletion.sql')
+    for (const line of accounts.stdout.split('\n')) if (line.startsWith('PASS:')) console.log(line)
+    console.log('All database checks passed in an isolated temporary database.')
+  }
 } catch (error) {
   if (started) {
     const log = await readFile(join(directory, 'postgres.log'), 'utf8').catch(() => '')

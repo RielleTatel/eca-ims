@@ -8,6 +8,7 @@ import {
   NotebookTabs,
   Settings,
   ShieldCheck,
+  Users,
 } from 'lucide-react'
 
 import type { UserRole } from '@/context/auth-context'
@@ -20,8 +21,7 @@ export interface NavigationItem {
   end?: boolean
 }
 
-export const navigationByRole: Record<UserRole, NavigationItem[]> = {
-  SUPER_ADMIN: [
+const operations: NavigationItem[] = [
     {
       label: 'Dashboard',
       to: '/logistics/dashboard',
@@ -45,12 +45,13 @@ export const navigationByRole: Record<UserRole, NavigationItem[]> = {
     },
     { label: 'Reports', to: '/logistics/reports', icon: FileBarChart, section: 'Records' },
     { label: 'Audit Logs', to: '/logistics/audit-logs', icon: ShieldCheck, section: 'Records' },
-    {
-      label: 'System Settings',
-      to: '/logistics/settings',
-      icon: Settings,
-      section: 'Administration',
-    },
+]
+
+export const navigationByRole: Record<UserRole, NavigationItem[]> = {
+  STAFF: operations,
+  SUPER_ADMIN: [...operations,
+    { label: 'Staff Accounts', to: '/logistics/accounts', icon: Users, section: 'Administration' },
+    { label: 'System Settings', to: '/logistics/settings', icon: Settings, section: 'Administration' },
   ],
 }
 

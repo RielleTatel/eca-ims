@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Eye, Pencil, Plus, Power, PowerOff, Search } from 'lucide-react'
+import { Eye, Pencil, Plus, Power, PowerOff, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -51,7 +51,7 @@ function conditionTone(condition: ItemCondition) {
 export function InventoryPage() {
   const { user } = useAuth()
   const { notify } = useToast()
-  const isAdmin = user?.role === 'SUPER_ADMIN'
+  const canManageInventory = user?.role === 'SUPER_ADMIN' || user?.role === 'STAFF'
   const [items, setItems] = useState<InventoryItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [pagination, setPagination] = useState(emptyPagination)
@@ -59,13 +59,14 @@ export function InventoryPage() {
   const debouncedSearch = useDebouncedValue(search)
   const [categoryId, setCategoryId] = useState('')
   const [condition, setCondition] = useState('')
-  const [activeFilter, setActiveFilter] = useState(isAdmin ? '' : 'true')
+  const [activeFilter, setActiveFilter] = useState(canManageInventory ? '' : 'true')
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState<ItemListParams['sortBy']>('itemName')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null)
   const [pendingItem, setPendingItem] = useState<InventoryItem | null>(null)
   const [isMutating, setIsMutating] = useState(false)
 
@@ -86,7 +87,7 @@ export function InventoryPage() {
         },
         controller.signal,
       ),
-      categoryService.list(isAdmin ? undefined : true, controller.signal),
+      categoryService.list(canManageInventory ? undefined : true, controller.signal),
     ])
       .then(([itemResult, categoryResult]) => {
         setItems(itemResult.items)
@@ -102,7 +103,7 @@ export function InventoryPage() {
       .finally(() => setIsLoading(false))
 
     return () => controller.abort()
-  }, [activeFilter, categoryId, condition, debouncedSearch, isAdmin, page, reloadKey, sortBy, sortOrder])
+  }, [activeFilter, categoryId, condition, debouncedSearch, canManageInventory, page, reloadKey, sortBy, sortOrder])
 
   function refreshInventory() {
     setIsLoading(true)
@@ -138,6 +139,20 @@ export function InventoryPage() {
     }
   }
 
+  async function confirmDeletion() {
+    if (!deleteItem || isMutating) return
+    setIsMutating(true)
+    try {
+      await itemService.delete(deleteItem.id)
+      setDeleteItem(null)
+      setPage(1)
+      refreshInventory()
+      notify({ title: 'Inventory item permanently deleted.' })
+    } catch (error) {
+      notify({ title: 'Item could not be deleted.', description: getApiErrorMessage(error), tone: 'error' })
+    } finally { setIsMutating(false) }
+  }
+
   async function activateItem(item: InventoryItem) {
     setIsMutating(true)
 
@@ -160,7 +175,7 @@ export function InventoryPage() {
     setSearch('')
     setCategoryId('')
     setCondition('')
-    setActiveFilter(isAdmin ? '' : 'true')
+    setActiveFilter(canManageInventory ? '' : 'true')
     setPage(1)
     setIsLoading(true)
   }
@@ -187,7 +202,7 @@ export function InventoryPage() {
           onRemove: () => updateFilter(setCondition, ''),
         }]
       : []),
-    ...(isAdmin && activeFilter
+    ...(canManageInventory && activeFilter
       ? [{
           key: 'status',
           label: activeFilter === 'true' ? 'Record: Active' : 'Record: Inactive',
@@ -262,7 +277,7 @@ export function InventoryPage() {
               </Link>
             </Button>
           </ActionTooltip>
-          {isAdmin ? (
+          {canManageInventory ? (
             <>
               <ActionTooltip label={`Edit ${item.itemName}`}>
                 <Button
@@ -277,6 +292,12 @@ export function InventoryPage() {
                   >
                     <Pencil aria-hidden="true" />
                   </Link>
+                </Button>
+              </ActionTooltip>
+              <ActionTooltip label={`Delete ${item.itemName}`}>
+                <Button type="button" variant="ghost" size="icon-sm" className="text-destructive"
+                  aria-label={`Delete ${item.itemName}`} disabled={isMutating} onClick={() => setDeleteItem(item)}>
+                  <Trash2 aria-hidden="true" />
                 </Button>
               </ActionTooltip>
               {item.isActive ? (
@@ -317,14 +338,14 @@ export function InventoryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={isAdmin ? 'Inventory Management' : 'Inventory'}
+        title={canManageInventory ? 'Inventory Management' : 'Inventory'}
         description={
-          isAdmin
+          canManageInventory
             ? 'Search, maintain, and monitor ECA inventory records.'
             : 'Browse active ECA equipment and current availability.'
         }
         actions={
-          isAdmin ? (
+          canManageInventory ? (
             <Button asChild>
               <Link to="/logistics/inventory/new">
                 <Plus aria-hidden="true" />
@@ -375,7 +396,7 @@ export function InventoryPage() {
               }))}
             />
           </div>
-          {isAdmin ? (
+          {canManageInventory ? (
             <div className="space-y-1.5">
               <Label>Record status</Label>
               <AppSelect
@@ -424,6 +445,11 @@ export function InventoryPage() {
           />
         ) : null}
       </Card>
+      <ConfirmationDialog open={deleteItem !== null}
+        onOpenChange={(open) => { if (!open && !isMutating) setDeleteItem(null) }}
+        title="Permanently delete inventory item?"
+        description={`${deleteItem?.itemName ?? 'This item'} and its stock transactions will be permanently removed. This cannot be undone. Items with any borrowing history cannot be deleted. A deletion audit record is retained.`}
+        confirmLabel="Permanently delete" destructive isPending={isMutating} onConfirm={() => void confirmDeletion()} />
       <ConfirmationDialog
         open={pendingItem !== null}
         onOpenChange={(open) => {

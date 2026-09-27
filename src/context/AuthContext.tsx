@@ -40,30 +40,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     void initializeAuth()
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event) => {
+    // Supabase holds its auth lock while notifying listeners. Schedule reads
+    // outside the callback to avoid a nested getUser() deadlock.
+    const timers = new Set<ReturnType<typeof setTimeout>>()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (!active) return
-
-      if (event === 'SIGNED_OUT') {
-        setUser(null)
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        try {
-          const updatedUser = await authService.getCurrentUser()
-          if (active) {
-            setUser(updatedUser)
-          }
-        } catch {
-          if (active) {
-            setUser(null)
-          }
-        }
+      if (event === 'SIGNED_OUT') setUser(null)
+      else if (['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
+        const timer = setTimeout(() => { timers.delete(timer); if (active) void initializeAuth() }, 0)
+        timers.add(timer)
       }
     })
+    const onFocus = () => { if (active) void initializeAuth() }
+    window.addEventListener('focus', onFocus)
 
     return () => {
       active = false
       subscription.unsubscribe()
+      timers.forEach(clearTimeout)
+      window.removeEventListener('focus', onFocus)
     }
   }, [])
 
