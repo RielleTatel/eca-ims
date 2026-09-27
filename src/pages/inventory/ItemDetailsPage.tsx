@@ -1,4 +1,3 @@
-import axios from 'axios'
 import {
   ArrowLeft,
   Boxes,
@@ -24,9 +23,11 @@ import { useAuth } from '@/hooks/useAuth'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { getApiErrorMessage } from '@/services/api'
 import { itemService } from '@/services/itemService'
-import { requestService, type HistoryListParams } from '@/services/requestService'
+import { borrowingService, displayBorrowingDate, type BorrowingListParams } from '@/services/borrowingService'
+import { useToast } from '@/hooks/useToast'
+import { Label } from '@/components/ui/label'
 import type {
-  BorrowingHistoryRecord,
+  BorrowingRecord,
   InventoryItem,
   Pagination,
   SortOrder,
@@ -39,13 +40,17 @@ export function ItemDetailsPage() {
   const { itemId } = useParams()
   const { user } = useAuth()
   const isAdmin = user?.role === 'SUPER_ADMIN'
+  const { notify } = useToast()
+  const [repairQuantity, setRepairQuantity] = useState(1)
+  const [isRepairing, setIsRepairing] = useState(false)
+  const [repairError, setRepairError] = useState<string | null>(null)
   const [item, setItem] = useState<InventoryItem | null>(null)
-  const [history, setHistory] = useState<BorrowingHistoryRecord[]>([])
+  const [history, setHistory] = useState<BorrowingRecord[]>([])
   const [pagination, setPagination] = useState(emptyPagination)
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search)
   const [page, setPage] = useState(1)
-  const [sortBy, setSortBy] = useState<HistoryListParams['sortBy']>('borrowDate')
+  const [sortBy, setSortBy] = useState<BorrowingListParams['sortBy']>('borrowDate')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [isItemLoading, setIsItemLoading] = useState(true)
   const [isHistoryLoading, setIsHistoryLoading] = useState(true)
@@ -62,15 +67,16 @@ export function ItemDetailsPage() {
     itemService
       .get(itemId, controller.signal)
       .then((itemResult) => {
+        if (controller.signal.aborted) return
         setItem(itemResult)
         setItemError(null)
       })
       .catch((requestError: unknown) => {
-        if (!axios.isCancel(requestError)) {
+        if (!controller.signal.aborted) {
           setItemError(getApiErrorMessage(requestError, 'Inventory details could not be loaded.'))
         }
       })
-      .finally(() => setIsItemLoading(false))
+      .finally(() => { if (!controller.signal.aborted) setIsItemLoading(false) })
 
     return () => controller.abort()
   }, [itemId])
@@ -82,8 +88,8 @@ export function ItemDetailsPage() {
 
     const controller = new AbortController()
 
-    requestService
-      .history(
+    borrowingService
+      .list(
         {
           itemId,
           search: debouncedSearch || undefined,
@@ -95,18 +101,19 @@ export function ItemDetailsPage() {
         controller.signal,
       )
       .then((historyResult) => {
-        setHistory(historyResult.history)
+        if (controller.signal.aborted) return
+        setHistory(historyResult.borrowings)
         setPagination(historyResult.pagination)
         setHistoryError(null)
       })
       .catch((requestError: unknown) => {
-        if (!axios.isCancel(requestError)) {
+        if (!controller.signal.aborted) {
           setHistoryError(
             getApiErrorMessage(requestError, 'Borrowing history could not be loaded.'),
           )
         }
       })
-      .finally(() => setIsHistoryLoading(false))
+      .finally(() => { if (!controller.signal.aborted) setIsHistoryLoading(false) })
 
     return () => controller.abort()
   }, [debouncedSearch, itemId, page, sortBy, sortOrder])
@@ -123,8 +130,8 @@ export function ItemDetailsPage() {
     return <FullPageError message={itemError ?? 'Inventory item was not found.'} />
   }
 
-  const basePath = isAdmin ? '/logistics' : '/committee'
-  const borrowedQuantity = Math.max(0, item.totalQuantity - item.availableQuantity)
+  const basePath = '/logistics'
+  const borrowedQuantity = Math.max(0, item.totalQuantity - item.availableQuantity - item.damagedQuantity)
   const availabilityPercent =
     item.totalQuantity > 0 ? (item.availableQuantity / item.totalQuantity) * 100 : 0
   const conditionTone =
@@ -133,29 +140,29 @@ export function ItemDetailsPage() {
       : item.condition === 'FAIR' || item.condition === 'UNDER_REPAIR'
         ? 'warning'
         : 'danger'
-  const historyColumns: ServerTableColumn<BorrowingHistoryRecord>[] = [
+  const historyColumns: ServerTableColumn<BorrowingRecord>[] = [
     {
-      key: 'request',
-      label: 'Request',
+      key: 'borrowing',
+      label: 'Borrowing',
       render: (entry) => (
         <Button asChild variant="link" className="h-auto p-0">
-          <Link to={`${basePath}/requests/${entry.id}`}>{entry.requestCode}</Link>
+          <Link to={`${basePath}/borrowings/${entry.id}`}>{entry.borrowingCode}</Link>
         </Button>
       ),
     },
-    { key: 'committee', label: 'Committee', render: (entry) => entry.committee.name },
+    { key: 'student', label: 'Student', render: (entry) => entry.borrowerName },
     {
       key: 'dates',
       label: 'Borrow period',
       sortKey: 'borrowDate',
       render: (entry) =>
-        `${new Date(entry.borrowDate).toLocaleDateString()} – ${new Date(entry.expectedReturnDate).toLocaleDateString()}`,
+        `${displayBorrowingDate(entry.borrowDate)} – ${displayBorrowingDate(entry.expectedReturnDate)}`,
     },
     {
       key: 'quantity',
-      label: 'Quantity',
+      label: 'Borrowed / outstanding',
       render: (entry) =>
-        entry.items.find((requestItem) => requestItem.itemId === itemId)?.quantityRequested ?? 0,
+        `${entry.items.find((line) => line.itemId === itemId)?.quantityBorrowed ?? 0} / ${entry.items.find((line) => line.itemId === itemId)?.outstandingQuantity ?? 0}`,
     },
     {
       key: 'status',
@@ -165,18 +172,25 @@ export function ItemDetailsPage() {
         <StatusBadge
           label={formatEnumLabel(entry.status)}
           tone={
-            entry.status === 'REJECTED'
+            entry.status === 'ARCHIVED'
               ? 'danger'
               : entry.status === 'RETURNED'
                 ? 'success'
-                : entry.status === 'PENDING'
-                  ? 'pending'
-                  : 'progress'
+                : 'progress'
           }
         />
       ),
     },
   ]
+
+  async function repairUnits() {
+    if (!itemId || isRepairing) return
+    setIsRepairing(true)
+    setRepairError(null)
+    try { setItem(await itemService.repair(itemId, repairQuantity)); notify({ title: 'Repaired units restored to available stock.' }) }
+    catch (error) { setRepairError(getApiErrorMessage(error, 'Repair could not be recorded.')) }
+    finally { setIsRepairing(false) }
+  }
 
   return (
     <div className="space-y-6">
@@ -266,6 +280,11 @@ export function ItemDetailsPage() {
           </div>
         </CardContent>
       </Card>
+      {item.damagedQuantity > 0 ? <Card><CardHeader><CardTitle>{item.damagedQuantity} damaged units awaiting repair</CardTitle></CardHeader><CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">Record units restored to working condition. This makes them available again.</p>
+        {repairError ? <p role="alert" className="text-sm text-destructive">{repairError}</p> : null}
+        <div className="flex items-end gap-3"><div className="space-y-1"><Label htmlFor="repair-quantity">Repaired quantity</Label><Input id="repair-quantity" type="number" step={1} min={1} max={item.damagedQuantity} value={repairQuantity} disabled={isRepairing} onChange={(event) => setRepairQuantity(Number(event.target.value))} /></div><Button disabled={isRepairing || !Number.isInteger(repairQuantity) || repairQuantity < 1 || repairQuantity > item.damagedQuantity} onClick={() => void repairUnits()}>{isRepairing ? 'Recording…' : 'Record repair'}</Button></div>
+      </CardContent></Card> : null}
       <Card>
         <CardHeader><CardTitle>Item information</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm">
@@ -308,11 +327,11 @@ export function ItemDetailsPage() {
           isLoading={isHistoryLoading}
           error={historyError}
           emptyTitle="No borrowing history"
-          emptyDescription="This item has not appeared in a borrowing request yet."
+          emptyDescription="No student checkouts have been recorded for this item."
           sortBy={sortBy}
           sortOrder={sortOrder}
           onSort={(nextSortBy, nextSortOrder) => {
-            setSortBy(nextSortBy as HistoryListParams['sortBy'])
+            setSortBy(nextSortBy as BorrowingListParams['sortBy'])
             setSortOrder(nextSortOrder)
             setPage(1)
             setIsHistoryLoading(true)

@@ -12,7 +12,7 @@ export function PublicOnlyRoute() {
   }
 
   if (user) {
-    return <Navigate to={getHomePath(user.role)} replace />
+    return <Navigate to={getHomePath()} replace />
   }
 
   return <Outlet />

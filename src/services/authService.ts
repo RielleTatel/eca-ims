@@ -41,16 +41,12 @@ export const authService = {
         id,
         username,
         role,
-        is_active,
-        committee:committees (
-          id,
-          name
-        )
+        is_active
       `)
       .eq('id', authUser.id)
       .single()
 
-    if (error || !profile || !profile.is_active) {
+    if (error || !profile || !profile.is_active || profile.role !== 'SUPER_ADMIN') {
       return null
     }
 
@@ -58,7 +54,6 @@ export const authService = {
       id: profile.id,
       username: profile.username,
       role: profile.role,
-      committee: profile.committee as { id: string; name: string } | null,
     }
   },
 

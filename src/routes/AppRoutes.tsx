@@ -1,12 +1,10 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 
 import { AuthLayout } from '@/layouts/AuthLayout'
-import { CommitteeLayout } from '@/layouts/CommitteeLayout'
 import { LogisticsLayout } from '@/layouts/LogisticsLayout'
 import { AuditLogsPage } from '@/pages/audit/AuditLogsPage'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { CategoriesPage } from '@/pages/categories/CategoriesPage'
-import { CommitteeDashboardPage } from '@/pages/dashboard/CommitteeDashboardPage'
 import { LogisticsDashboardPage } from '@/pages/dashboard/LogisticsDashboardPage'
 import { InventoryPage } from '@/pages/inventory/InventoryPage'
 import { ItemDetailsPage } from '@/pages/inventory/ItemDetailsPage'
@@ -14,16 +12,20 @@ import { ItemFormPage } from '@/pages/inventory/ItemFormPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { InventoryReportPage } from '@/pages/reports/InventoryReportPage'
 import { SystemSettingsPage } from '@/pages/settings/SystemSettingsPage'
-import { BorrowHistoryPage } from '@/pages/requests/BorrowHistoryPage'
-import { CreateRequestPage } from '@/pages/requests/CreateRequestPage'
-import { RequestDetailsPage } from '@/pages/requests/RequestDetailsPage'
-import { RequestsPage } from '@/pages/requests/RequestsPage'
+import { BorrowingsPage } from '@/pages/borrowings/BorrowingsPage'
+import { RecordBorrowingPage } from '@/pages/borrowings/RecordBorrowingPage'
+import { BorrowingDetailsPage } from '@/pages/borrowings/BorrowingDetailsPage'
 import { TransactionsPage } from '@/pages/transactions/TransactionsPage'
 import { UnauthorizedPage } from '@/pages/UnauthorizedPage'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { PublicOnlyRoute } from '@/routes/PublicOnlyRoute'
 import { RoleRoute } from '@/routes/RoleRoute'
 import { RootRedirect } from '@/routes/RootRedirect'
+
+function LegacyBorrowingRedirect() {
+  const { requestId } = useParams()
+  return <Navigate to={`/logistics/borrowings/${requestId}`} replace />
+}
 
 export function AppRoutes() {
   return (
@@ -45,29 +47,16 @@ export function AppRoutes() {
               <Route path="inventory/new" element={<ItemFormPage />} />
               <Route path="inventory/:itemId" element={<ItemDetailsPage />} />
               <Route path="inventory/:itemId/edit" element={<ItemFormPage />} />
-              <Route path="requests" element={<RequestsPage />} />
-              <Route path="requests/:requestId" element={<RequestDetailsPage />} />
+              <Route path="borrowings" element={<BorrowingsPage />} />
+              <Route path="borrowings/new" element={<RecordBorrowingPage />} />
+              <Route path="borrowings/:borrowingId" element={<BorrowingDetailsPage />} />
+              <Route path="requests" element={<Navigate to="/logistics/borrowings" replace />} />
+              <Route path="requests/:requestId" element={<LegacyBorrowingRedirect />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="settings" element={<SystemSettingsPage />} />
-              <Route
-                path="committees"
-                element={<Navigate to="/logistics/settings" replace />}
-              />
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="reports" element={<InventoryReportPage />} />
               <Route path="audit-logs" element={<AuditLogsPage />} />
-            </Route>
-          </Route>
-          <Route element={<RoleRoute allowedRoles={['COMMITTEE']} />}>
-            <Route path="/committee" element={<CommitteeLayout />}>
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<CommitteeDashboardPage />} />
-              <Route path="inventory" element={<InventoryPage />} />
-              <Route path="inventory/:itemId" element={<ItemDetailsPage />} />
-              <Route path="requests/new" element={<CreateRequestPage />} />
-              <Route path="requests/history" element={<RequestsPage />} />
-              <Route path="requests/:requestId" element={<RequestDetailsPage />} />
-              <Route path="borrowing-history" element={<BorrowHistoryPage />} />
             </Route>
           </Route>
         </Route>

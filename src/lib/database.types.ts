@@ -1,567 +1,71 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
-
-export type UserRole = 'SUPER_ADMIN' | 'COMMITTEE'
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type UserRole = 'SUPER_ADMIN' | 'ARCHIVED'
 export type ItemCondition = 'GOOD' | 'FAIR' | 'DAMAGED' | 'UNDER_REPAIR' | 'LOST'
-export type RequestStatus =
-  | 'PENDING'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'CANCELLED'
-  | 'BORROWED'
-  | 'RETURNED'
+export type BorrowingStatus = 'ACTIVE' | 'RETURNED' | 'ARCHIVED'
 export type ReturnCondition = 'GOOD' | 'FAIR' | 'DAMAGED' | 'LOST'
-export type TransactionType =
-  | 'ITEM_ADDED'
-  | 'QUANTITY_INCREASED'
-  | 'QUANTITY_DECREASED'
-  | 'BORROWED'
-  | 'RETURNED'
-  | 'DAMAGED'
-  | 'LOST'
-  | 'ADJUSTMENT'
+export type TransactionType = 'ITEM_ADDED' | 'QUANTITY_INCREASED' | 'QUANTITY_DECREASED' | 'BORROWED' | 'RETURNED' | 'DAMAGED' | 'LOST' | 'ADJUSTMENT'
 
+type Relationship<Name extends string, Column extends string, Relation extends string> = {
+  foreignKeyName: Name; columns: [Column]; isOneToOne: false; referencedRelation: Relation; referencedColumns: ['id']
+}
+type Table<Row, Required extends keyof Row, Relationships extends unknown[] = []> = {
+  Row: Row; Insert: Partial<Row> & Pick<Row, Required>; Update: Partial<Row>; Relationships: Relationships
+}
+type Timestamps = { created_at: string; updated_at: string }
+export type BorrowingRow = Timestamps & {
+  id: string; borrowing_code: string; recorded_by: string; borrower_name: string; student_id: string | null
+  contact_details: string | null; purpose: string; borrow_date: string; expected_return_date: string
+  additional_notes: string | null; status: BorrowingStatus; is_legacy: boolean; legacy_metadata: Json | null
+  borrowed_at: string | null; returned_at: string | null
+}
+export type BorrowingItemRow = Timestamps & {
+  id: string; borrowing_id: string; item_id: string; quantity_borrowed: number; quantity_returned: number
+  quantity_lost: number; quantity_damaged: number
+}
 export interface Database {
   public: {
     Tables: {
-      committees: {
-        Row: {
-          id: string
-          name: string
-          description: string | null
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          id: string
-          committee_id: string | null
-          username: string
-          role: UserRole
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id: string
-          committee_id?: string | null
-          username: string
-          role?: UserRole
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          committee_id?: string | null
-          username?: string
-          role?: UserRole
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'profiles_committee_id_fkey'
-            columns: ['committee_id']
-            isOneToOne: true
-            referencedRelation: 'committees'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      categories: {
-        Row: {
-          id: string
-          name: string
-          description: string | null
-          is_active: boolean
-          created_by: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          is_active?: boolean
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          is_active?: boolean
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'categories_created_by_fkey'
-            columns: ['created_by']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      items: {
-        Row: {
-          id: string
-          item_code: string
-          category_id: string
-          item_name: string
-          description: string | null
-          total_quantity: number
-          available_quantity: number
-          condition: ItemCondition
-          storage_location: string
-          google_drive_folder_link: string | null
-          is_active: boolean
-          created_by: string | null
-          updated_by: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          item_code: string
-          category_id: string
-          item_name: string
-          description?: string | null
-          total_quantity: number
-          available_quantity: number
-          condition?: ItemCondition
-          storage_location: string
-          google_drive_folder_link?: string | null
-          is_active?: boolean
-          created_by?: string | null
-          updated_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          item_code?: string
-          category_id?: string
-          item_name?: string
-          description?: string | null
-          total_quantity?: number
-          available_quantity?: number
-          condition?: ItemCondition
-          storage_location?: string
-          google_drive_folder_link?: string | null
-          is_active?: boolean
-          created_by?: string | null
-          updated_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'items_category_id_fkey'
-            columns: ['category_id']
-            isOneToOne: false
-            referencedRelation: 'categories'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      borrowing_requests: {
-        Row: {
-          id: string
-          request_code: string
-          committee_id: string
-          submitted_by: string
-          requester_name: string
-          requester_position: string
-          purpose: string
-          borrow_date: string
-          expected_return_date: string
-          additional_notes: string | null
-          status: RequestStatus
-          rejection_reason: string | null
-          cancellation_reason: string | null
-          approved_by: string | null
-          approved_at: string | null
-          rejected_by: string | null
-          rejected_at: string | null
-          cancelled_by: string | null
-          cancelled_at: string | null
-          borrowed_at: string | null
-          returned_at: string | null
-          submitted_at: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          request_code: string
-          committee_id: string
-          submitted_by: string
-          requester_name: string
-          requester_position: string
-          purpose: string
-          borrow_date: string
-          expected_return_date: string
-          additional_notes?: string | null
-          status?: RequestStatus
-          rejection_reason?: string | null
-          cancellation_reason?: string | null
-          approved_by?: string | null
-          approved_at?: string | null
-          rejected_by?: string | null
-          rejected_at?: string | null
-          cancelled_by?: string | null
-          cancelled_at?: string | null
-          borrowed_at?: string | null
-          returned_at?: string | null
-          submitted_at?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          request_code?: string
-          committee_id?: string
-          submitted_by?: string
-          requester_name?: string
-          requester_position?: string
-          purpose?: string
-          borrow_date?: string
-          expected_return_date?: string
-          additional_notes?: string | null
-          status?: RequestStatus
-          rejection_reason?: string | null
-          cancellation_reason?: string | null
-          approved_by?: string | null
-          approved_at?: string | null
-          rejected_by?: string | null
-          rejected_at?: string | null
-          cancelled_by?: string | null
-          cancelled_at?: string | null
-          borrowed_at?: string | null
-          returned_at?: string | null
-          submitted_at?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'borrowing_requests_committee_id_fkey'
-            columns: ['committee_id']
-            isOneToOne: false
-            referencedRelation: 'committees'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'borrowing_requests_submitted_by_fkey'
-            columns: ['submitted_by']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      borrowing_request_items: {
-        Row: {
-          id: string
-          borrowing_request_id: string
-          item_id: string
-          quantity_requested: number
-          quantity_approved: number | null
-          quantity_released: number | null
-          quantity_returned: number
-          return_condition: ReturnCondition | null
-          return_notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          borrowing_request_id: string
-          item_id: string
-          quantity_requested: number
-          quantity_approved?: number | null
-          quantity_released?: number | null
-          quantity_returned?: number
-          return_condition?: ReturnCondition | null
-          return_notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          borrowing_request_id?: string
-          item_id?: string
-          quantity_requested?: number
-          quantity_approved?: number | null
-          quantity_released?: number | null
-          quantity_returned?: number
-          return_condition?: ReturnCondition | null
-          return_notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'borrowing_request_items_borrowing_request_id_fkey'
-            columns: ['borrowing_request_id']
-            isOneToOne: false
-            referencedRelation: 'borrowing_requests'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'borrowing_request_items_item_id_fkey'
-            columns: ['item_id']
-            isOneToOne: false
-            referencedRelation: 'items'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      inventory_transactions: {
-        Row: {
-          id: string
-          item_id: string
-          borrowing_request_id: string | null
-          performed_by: string
-          transaction_type: TransactionType
-          quantity: number
-          quantity_before: number
-          quantity_after: number
-          remarks: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          item_id: string
-          borrowing_request_id?: string | null
-          performed_by: string
-          transaction_type: TransactionType
-          quantity: number
-          quantity_before: number
-          quantity_after: number
-          remarks?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          item_id?: string
-          borrowing_request_id?: string | null
-          performed_by?: string
-          transaction_type?: TransactionType
-          quantity?: number
-          quantity_before?: number
-          quantity_after?: number
-          remarks?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'inventory_transactions_item_id_fkey'
-            columns: ['item_id']
-            isOneToOne: false
-            referencedRelation: 'items'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'inventory_transactions_borrowing_request_id_fkey'
-            columns: ['borrowing_request_id']
-            isOneToOne: false
-            referencedRelation: 'borrowing_requests'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'inventory_transactions_performed_by_fkey'
-            columns: ['performed_by']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      audit_logs: {
-        Row: {
-          id: string
-          user_id: string | null
-          committee_id: string | null
-          action: string
-          entity_type: string
-          entity_id: string | null
-          description: string
-          old_values: Json | null
-          new_values: Json | null
-          ip_address: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          committee_id?: string | null
-          action: string
-          entity_type: string
-          entity_id?: string | null
-          description: string
-          old_values?: Json | null
-          new_values?: Json | null
-          ip_address?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          committee_id?: string | null
-          action?: string
-          entity_type?: string
-          entity_id?: string | null
-          description?: string
-          old_values?: Json | null
-          new_values?: Json | null
-          ip_address?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'audit_logs_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'audit_logs_committee_id_fkey'
-            columns: ['committee_id']
-            isOneToOne: false
-            referencedRelation: 'committees'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      system_settings: {
-        Row: {
-          id: string
-          siteao_governor_name: string
-          updated_by: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          siteao_governor_name?: string
-          updated_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          siteao_governor_name?: string
-          updated_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'system_settings_updated_by_fkey'
-            columns: ['updated_by']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-        ]
-      }
+      profiles: Table<Timestamps & { id: string; username: string; role: UserRole; is_active: boolean }, 'id' | 'username'>
+      categories: Table<Timestamps & { id: string; name: string; description: string | null; is_active: boolean; created_by: string | null }, 'name', [Relationship<'categories_created_by_fkey', 'created_by', 'profiles'>]>
+      items: Table<Timestamps & {
+        id: string; item_code: string; category_id: string; item_name: string; description: string | null
+        total_quantity: number; available_quantity: number; damaged_quantity: number; condition: ItemCondition
+        storage_location: string; google_drive_folder_link: string | null; is_active: boolean
+        created_by: string | null; updated_by: string | null
+      }, 'item_code' | 'category_id' | 'item_name' | 'total_quantity' | 'available_quantity' | 'storage_location', [Relationship<'items_category_id_fkey', 'category_id', 'categories'>]>
+      borrowings: Table<BorrowingRow, 'borrowing_code' | 'recorded_by' | 'borrower_name' | 'purpose' | 'borrow_date' | 'expected_return_date', [Relationship<'borrowings_recorded_by_fkey', 'recorded_by', 'profiles'>]>
+      borrowing_items: Table<BorrowingItemRow, 'borrowing_id' | 'item_id' | 'quantity_borrowed', [Relationship<'borrowing_items_borrowing_id_fkey', 'borrowing_id', 'borrowings'>, Relationship<'borrowing_items_item_id_fkey', 'item_id', 'items'>]>
+      borrowing_returns: Table<{
+        id: string; borrowing_item_id: string; quantity: number; condition: ReturnCondition; notes: string | null
+        recorded_by: string; created_at: string
+      }, 'borrowing_item_id' | 'quantity' | 'condition' | 'recorded_by', [Relationship<'borrowing_returns_borrowing_item_id_fkey', 'borrowing_item_id', 'borrowing_items'>, Relationship<'borrowing_returns_recorded_by_fkey', 'recorded_by', 'profiles'>]>
+      inventory_transactions: Table<{
+        id: string; item_id: string; borrowing_id: string | null; performed_by: string; transaction_type: TransactionType
+        quantity: number; quantity_before: number; quantity_after: number; remarks: string | null; created_at: string
+      }, 'item_id' | 'performed_by' | 'transaction_type' | 'quantity' | 'quantity_before' | 'quantity_after', [Relationship<'inventory_transactions_item_id_fkey', 'item_id', 'items'>, Relationship<'inventory_transactions_borrowing_id_fkey', 'borrowing_id', 'borrowings'>, Relationship<'inventory_transactions_performed_by_fkey', 'performed_by', 'profiles'>]>
+      audit_logs: Table<{
+        id: string; user_id: string | null; action: string; entity_type: string; entity_id: string | null; description: string
+        old_values: Json | null; new_values: Json | null; ip_address: string | null; created_at: string
+      }, 'action' | 'entity_type' | 'description', [Relationship<'audit_logs_user_id_fkey', 'user_id', 'profiles'>]>
+      system_settings: Table<Timestamps & {
+        id: string; siteao_governor_name: string; updated_by: string | null
+      }, never, [Relationship<'system_settings_updated_by_fkey', 'updated_by', 'profiles'>]>
     }
-    Views: {
-      [_ in never]: never
-    }
+    Views: { [_ in never]: never }
     Functions: {
-      create_borrowing_request: {
-        Args: {
-          p_requester_name: string
-          p_requester_position: string
-          p_purpose: string
-          p_borrow_date: string
-          p_expected_return_date: string
-          p_additional_notes: string | null
-          p_items: Json
-        }
+      record_borrowing: {
+        Args: { p_borrower_name: string; p_student_id: string; p_contact_details: string | null; p_purpose: string; p_borrow_date: string; p_expected_return_date: string; p_additional_notes: string | null; p_items: Json }
         Returns: Json
       }
-      approve_borrowing_request: {
-        Args: {
-          p_request_id: string
-          p_remarks?: string | null
-        }
+      record_borrowing_return: { Args: { p_borrowing_id: string; p_returns: Json }; Returns: Json }
+      update_borrowing_details: {
+        Args: { p_borrowing_id: string; p_borrower_name: string; p_student_id: string; p_contact_details: string | null; p_expected_return_date: string; p_purpose: string; p_additional_notes: string | null }
         Returns: Json
       }
-      reject_borrowing_request: {
-        Args: {
-          p_request_id: string
-          p_reason: string
-        }
-        Returns: Json
-      }
-      return_borrowing_request: {
-        Args: {
-          p_request_id: string
-          p_condition: ReturnCondition
-          p_notes?: string | null
-        }
-        Returns: Json
-      }
-      get_dashboard_metrics: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      admin_create_committee_account: {
-        Args: {
-          p_username: string
-          p_password: string
-          p_committee_id: string
-        }
-        Returns: Json
-      }
-      admin_reset_committee_password: {
-        Args: {
-          p_user_id: string
-          p_new_password: string
-        }
-        Returns: Json
-      }
+      update_inventory_item: { Args: { p_item_id: string; p_input: Json }; Returns: undefined }
+      repair_inventory_units: { Args: { p_item_id: string; p_quantity: number }; Returns: undefined }
+      get_dashboard_metrics: { Args: Record<PropertyKey, never>; Returns: Json }
     }
-    Enums: {
-      user_role: UserRole
-      item_condition: ItemCondition
-      request_status: RequestStatus
-      return_condition: ReturnCondition
-      transaction_type: TransactionType
-    }
+    Enums: { account_role: UserRole; item_condition: ItemCondition; borrowing_status: BorrowingStatus; return_condition: ReturnCondition; transaction_type: TransactionType }
   }
 }

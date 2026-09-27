@@ -55,15 +55,14 @@ export function LoginPage() {
     setError(null)
 
     try {
-      const user = await login({ username: username.trim(), password })
+      await login({ username: username.trim(), password })
       const state = location.state as LoginLocationState | null
       const attemptedPath = state?.from?.pathname
       const safeDestination =
         attemptedPath &&
-        ((user.role === 'SUPER_ADMIN' && attemptedPath.startsWith('/logistics')) ||
-          (user.role === 'COMMITTEE' && attemptedPath.startsWith('/committee')))
+        attemptedPath.startsWith('/logistics/')
           ? attemptedPath
-          : getHomePath(user.role)
+          : getHomePath()
 
       navigate(safeDestination, { replace: true })
     } catch (loginError) {
@@ -85,7 +84,7 @@ export function LoginPage() {
         </div>
         <CardTitle className="font-heading text-2xl font-semibold tracking-tight">Welcome back</CardTitle>
         <CardDescription className="leading-6">
-          Sign in with your ECA account to continue.
+          Sign in with your ECA administrator account to continue.
         </CardDescription>
       </CardHeader>
       <CardContent className="auth-card-content px-6 pb-7 sm:px-8 sm:pb-8">

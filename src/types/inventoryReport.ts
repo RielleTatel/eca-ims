@@ -25,6 +25,7 @@ export interface InventoryReportSummary {
   totalQuantity: number
   availableQuantity: number
   borrowedQuantity: number
+  damagedQuantity: number
 }
 
 export interface InventoryReportItem {
@@ -36,6 +37,7 @@ export interface InventoryReportItem {
   quantity: number
   availableQuantity: number
   borrowedQuantity: number
+  damagedQuantity: number
   category: {
     id: string
     name: string

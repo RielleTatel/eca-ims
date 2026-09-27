@@ -327,6 +327,7 @@ export function InventoryReportPage() {
       className: 'text-right tabular-nums',
       render: (item) => item.borrowedQuantity,
     },
+    { key: 'damagedQuantity', label: 'Damaged', className: 'text-right tabular-nums', render: (item) => item.damagedQuantity },
     {
       key: 'status',
       label: 'Status',
@@ -529,7 +530,7 @@ export function InventoryReportPage() {
         <h2 id="report-summary-heading" className="sr-only">
           Inventory report summary
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <SummaryCard
             label="Distinct Items"
             value={report?.summary.distinctItems}
@@ -549,6 +550,13 @@ export function InventoryReportPage() {
             value={report?.summary.availableQuantity}
             icon={CheckCircle2}
             accentClass="bg-success"
+            isLoading={isPreviewLoading}
+          />
+          <SummaryCard
+            label="Damaged Quantity"
+            value={report?.summary.damagedQuantity}
+            icon={Boxes}
+            accentClass="bg-destructive"
             isLoading={isPreviewLoading}
           />
           <SummaryCard

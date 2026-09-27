@@ -66,7 +66,7 @@ export function AuthLayout() {
 
         <div className="absolute inset-x-8 bottom-20 z-20 text-center xl:inset-x-12">
           <p className="mx-auto max-w-md font-heading text-lg leading-7 text-brand-parchment/80">
-            The council's system of record for equipment, requests, and committee accounts.
+            The council's system of record for inventory, student borrowings, and returns.
           </p>
         </div>
 

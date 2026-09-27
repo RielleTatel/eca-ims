@@ -60,7 +60,7 @@ export function TopNavbar({ navigation, user }: TopNavbarProps) {
       </Sheet>
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold">
-          {user.role === 'SUPER_ADMIN' ? 'ECA Administration' : user.committee?.name}
+          ECA Administration
         </p>
         <p className="hidden text-xs text-muted-foreground sm:block">Operations workspace</p>
       </div>
@@ -79,7 +79,7 @@ export function TopNavbar({ navigation, user }: TopNavbarProps) {
             <DropdownMenuLabel>
               <span className="block truncate">{user.username}</span>
               <span className="block truncate text-xs font-normal text-muted-foreground">
-                {user.committee?.name ?? 'Super Administrator'}
+                Administrator
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

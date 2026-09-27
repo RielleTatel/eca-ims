@@ -7,7 +7,7 @@ export interface CategoryInput {
 }
 
 export const categoryService = {
-  async list(isActive?: boolean, _signal?: AbortSignal): Promise<Category[]> {
+  async list(isActive?: boolean, signal?: AbortSignal): Promise<Category[]> {
     let query = supabase
       .from('categories')
       .select('id, name, description, is_active, created_at, updated_at')
@@ -17,6 +17,7 @@ export const categoryService = {
       query = query.eq('is_active', isActive)
     }
 
+    if (signal) query = query.abortSignal(signal)
     const { data, error } = await query
 
     if (error) {

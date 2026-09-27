@@ -203,10 +203,10 @@ export function TransactionsPage() {
       label: 'Reference',
       align: 'left',
       render: (transaction) =>
-        transaction.borrowingRequest ? (
+        transaction.borrowing ? (
           <Button asChild variant="link" className="h-auto p-0">
-            <Link to={`/logistics/requests/${transaction.borrowingRequest.id}`}>
-              {transaction.borrowingRequest.requestCode}
+            <Link to={`/logistics/borrowings/${transaction.borrowing.id}`}>
+              {transaction.borrowing.borrowingCode}
             </Link>
           </Button>
         ) : (
@@ -234,7 +234,7 @@ export function TransactionsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Inventory Transactions"
-        description="Review quantity movements, borrowing releases, and processed returns."
+        description="Review quantity movements, student checkouts, and processed returns."
       />
       <Card className="gap-0 py-0">
         <CardContent className="grid gap-3 border-b p-4 md:grid-cols-2 xl:grid-cols-[minmax(16rem,1fr)_repeat(3,minmax(10rem,auto))]">

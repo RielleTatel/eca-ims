@@ -8,7 +8,7 @@ import { getHomePath } from '@/lib/navigation'
 
 export function NotFoundPage() {
   const { user } = useAuth()
-  const destination = user ? getHomePath(user.role) : '/login'
+  const destination = user ? getHomePath() : '/login'
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30 p-6">

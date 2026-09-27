@@ -255,7 +255,7 @@ export function InventoryPage() {
           <ActionTooltip label={`View ${item.itemName}`}>
             <Button asChild type="button" variant="ghost" size="icon-sm">
               <Link
-                to={`${isAdmin ? '/logistics' : '/committee'}/inventory/${item.id}`}
+                to={`/logistics/inventory/${item.id}`}
                 aria-label={`View ${item.itemName}`}
               >
                 <Eye aria-hidden="true" />
@@ -434,7 +434,7 @@ export function InventoryPage() {
         title="Deactivate inventory item?"
         description={`${
           pendingItem?.itemName ?? 'This item'
-        } will no longer be available for new borrowing requests.`}
+        } will no longer be available for student checkouts.`}
         confirmLabel="Deactivate item"
         destructive
         isPending={isMutating}

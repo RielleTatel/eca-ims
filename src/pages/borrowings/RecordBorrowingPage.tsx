@@ -1,4 +1,3 @@
-import axios from 'axios'
 import {
   ArrowLeft,
   Check,
@@ -28,7 +27,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useToast } from '@/hooks/useToast'
 import { getApiErrorMessage } from '@/services/api'
 import { itemService, type ItemListParams } from '@/services/itemService'
-import { requestService } from '@/services/requestService'
+import { borrowingService, todayInManila } from '@/services/borrowingService'
 import type { InventoryItem, Pagination, SortOrder } from '@/types/api'
 
 interface SelectedItem {
@@ -36,12 +35,12 @@ interface SelectedItem {
   quantity: number
 }
 
-type RequestStep = 1 | 2 | 3
+type CheckoutStep = 1 | 2 | 3
 
-const steps: Array<{ id: RequestStep; label: string; description: string }> = [
+const steps: Array<{ id: CheckoutStep; label: string; description: string }> = [
   { id: 1, label: 'Select items', description: 'Choose available inventory' },
-  { id: 2, label: 'Request details', description: 'Requester and schedule' },
-  { id: 3, label: 'Review', description: 'Confirm before submitting' },
+  { id: 2, label: 'Student details', description: 'Student and schedule' },
+  { id: 3, label: 'Review', description: 'Confirm before recording' },
 ]
 
 const emptyPagination: Pagination = { page: 1, limit: 10, total: 0, totalPages: 0 }
@@ -56,10 +55,10 @@ function formatDisplayDate(value: string) {
     : 'Not provided'
 }
 
-export function CreateRequestPage() {
+export function RecordBorrowingPage() {
   const navigate = useNavigate()
   const { notify } = useToast()
-  const [activeStep, setActiveStep] = useState<RequestStep>(1)
+  const [activeStep, setActiveStep] = useState<CheckoutStep>(1)
   const [inventory, setInventory] = useState<InventoryItem[]>([])
   const [inventorySearch, setInventorySearch] = useState('')
   const debouncedSearch = useDebouncedValue(inventorySearch)
@@ -69,15 +68,16 @@ export function CreateRequestPage() {
     useState<ItemListParams['sortBy']>('itemName')
   const [inventorySortOrder, setInventorySortOrder] = useState<SortOrder>('asc')
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
-  const [requesterName, setRequesterName] = useState('')
-  const [requesterPosition, setRequesterPosition] = useState('')
+  const [borrowerName, setBorrowerName] = useState('')
+  const [studentId, setStudentId] = useState('')
+  const [contactDetails, setContactDetails] = useState('')
   const [purpose, setPurpose] = useState('')
-  const [borrowDate, setBorrowDate] = useState('')
-  const [expectedReturnDate, setExpectedReturnDate] = useState('')
+  const [borrowDate, setBorrowDate] = useState(todayInManila())
+  const [expectedReturnDate, setExpectedReturnDate] = useState(todayInManila())
   const [additionalNotes, setAdditionalNotes] = useState('')
   const [isLoadingItems, setIsLoadingItems] = useState(true)
   const [inventoryError, setInventoryError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -97,21 +97,22 @@ export function CreateRequestPage() {
         controller.signal,
       )
       .then((result) => {
+        if (controller.signal.aborted) return
         setInventory(result.items)
         setInventoryPagination(result.pagination)
         setInventoryError(null)
       })
-      .catch((requestError: unknown) => {
-        if (!axios.isCancel(requestError)) {
-          setInventoryError(getApiErrorMessage(requestError, 'Available inventory could not be loaded.'))
+      .catch((loadError: unknown) => {
+        if (!controller.signal.aborted) {
+          setInventoryError(getApiErrorMessage(loadError, 'Available inventory could not be loaded.'))
         }
       })
-      .finally(() => setIsLoadingItems(false))
+      .finally(() => { if (!controller.signal.aborted) setIsLoadingItems(false) })
 
     return () => controller.abort()
   }, [debouncedSearch, inventoryPage, inventorySortBy, inventorySortOrder])
 
-  function showStep(step: RequestStep) {
+  function showStep(step: CheckoutStep) {
     setActiveStep(step)
     setFormError(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -135,7 +136,7 @@ export function CreateRequestPage() {
         selection.item.id === itemId
           ? {
               ...selection,
-              quantity: Math.max(1, Math.min(quantity, selection.item.availableQuantity)),
+              quantity: Math.max(1, Math.min(Number.isFinite(quantity) ? Math.trunc(quantity) : 1, selection.item.availableQuantity)),
             }
           : selection,
       ),
@@ -152,14 +153,14 @@ export function CreateRequestPage() {
 
   function detailsAreValid() {
     if (
-      requesterName.trim().length < 2 ||
-      requesterPosition.trim().length < 2 ||
+      borrowerName.trim().length < 2 ||
+      !studentId.trim() ||
       purpose.trim().length < 5 ||
-      !borrowDate ||
+      !borrowDate || borrowDate > todayInManila() ||
       !expectedReturnDate ||
       expectedReturnDate < borrowDate
     ) {
-      setFormError('Complete the requester details, purpose, and valid borrowing dates.')
+      setFormError('Complete the student details, purpose, and valid borrowing dates.')
       return false
     }
     return true
@@ -171,7 +172,7 @@ export function CreateRequestPage() {
     }
   }
 
-  async function submitRequest(event: FormEvent<HTMLFormElement>) {
+  async function recordCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     if (activeStep === 1) {
@@ -184,34 +185,35 @@ export function CreateRequestPage() {
       return
     }
 
-    if (isSubmitting || !detailsAreValid() || selectedItems.length === 0) {
+    if (isRecording || !detailsAreValid() || selectedItems.length === 0) {
       return
     }
 
-    setIsSubmitting(true)
+    setIsRecording(true)
     setFormError(null)
 
     try {
-      const response = await requestService.create({
-        requesterName: requesterName.trim(),
-        requesterPosition: requesterPosition.trim(),
+      const response = await borrowingService.create({
+        borrowerName: borrowerName.trim(),
+        studentId: studentId.trim(),
+        contactDetails: contactDetails.trim(),
         purpose: purpose.trim(),
         borrowDate,
         expectedReturnDate,
-        additionalNotes: additionalNotes.trim() || null,
+        additionalNotes: additionalNotes.trim() || undefined,
         items: selectedItems.map((selection) => ({
           itemId: selection.item.id,
           quantity: selection.quantity,
         })),
       })
-      notify({ title: response.message ?? 'Borrow request submitted.' })
-      navigate(`/committee/requests/${response.data.request.id}`, { replace: true })
-    } catch (submitError) {
-      const message = getApiErrorMessage(submitError, 'Borrowing request could not be submitted.')
+      notify({ title: 'Borrowing recorded. Inventory has been updated.' })
+      navigate(`/logistics/borrowings/${response.id}`, { replace: true })
+    } catch (recordError) {
+      const message = getApiErrorMessage(recordError, 'Borrowing record could not be recorded.')
       setFormError(message)
-      notify({ title: 'Borrow request was not submitted.', description: message, tone: 'error' })
+      notify({ title: 'Borrowing was not recorded.', description: message, tone: 'error' })
     } finally {
-      setIsSubmitting(false)
+      setIsRecording(false)
     }
   }
 
@@ -262,19 +264,19 @@ export function CreateRequestPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="New Borrowing Request"
-        description="Build and review your request in three short steps."
+        title="Record Borrowing"
+        description="Build and review the borrowing in three short steps."
         actions={
           <Button asChild variant="outline">
-            <Link to="/committee/requests/history">
+            <Link to="/logistics/borrowings">
               <ArrowLeft aria-hidden="true" />
-              Back to requests
+              Back to borrowings
             </Link>
           </Button>
         }
       />
 
-      <nav aria-label="Borrowing request progress">
+      <nav aria-label="Borrowing record progress">
         <ol className="grid gap-2 rounded-xl bg-muted/60 p-1.5 sm:grid-cols-3">
           {steps.map((step) => {
             const isActive = step.id === activeStep
@@ -310,7 +312,7 @@ export function CreateRequestPage() {
         </ol>
       </nav>
 
-      <form onSubmit={submitRequest} className="space-y-6">
+      <form onSubmit={recordCheckout} className="space-y-6">
         {formError ? <InlineError message={formError} /> : null}
 
         {activeStep === 1 ? (
@@ -320,13 +322,13 @@ export function CreateRequestPage() {
                 <CardTitle>Available inventory</CardTitle>
               </CardHeader>
               <CardContent className="border-b p-4">
-                <Label htmlFor="request-inventory-search" className="sr-only">
+                <Label htmlFor="checkout-inventory-search" className="sr-only">
                   Search available inventory
                 </Label>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                   <Input
-                    id="request-inventory-search"
+                    id="checkout-inventory-search"
                     value={inventorySearch}
                     onChange={(event) => {
                       setInventorySearch(event.target.value)
@@ -428,38 +430,41 @@ export function CreateRequestPage() {
         {activeStep === 2 ? (
           <Card>
             <CardHeader>
-              <CardTitle>Requester and schedule</CardTitle>
+              <CardTitle>Student and schedule</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="requester-name">Requester name *</Label>
+                <Label htmlFor="student-name">Student full name *</Label>
                 <Input
-                  id="requester-name"
-                  value={requesterName}
-                  onChange={(event) => setRequesterName(event.target.value)}
-                  disabled={isSubmitting}
+                  id="student-name"
+                  maxLength={150}
+                  value={borrowerName}
+                  onChange={(event) => setBorrowerName(event.target.value)}
+                  disabled={isRecording}
                   required
                   autoFocus
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="requester-position">Position *</Label>
+                <Label htmlFor="student-id">Student ID *</Label>
                 <Input
-                  id="requester-position"
-                  value={requesterPosition}
-                  onChange={(event) => setRequesterPosition(event.target.value)}
-                  disabled={isSubmitting}
+                  id="student-id"
+                  maxLength={100}
+                  value={studentId}
+                  onChange={(event) => setStudentId(event.target.value)}
+                  disabled={isRecording}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="borrow-date">Borrow date *</Label>
+                <Label htmlFor="borrow-date">Checkout date *</Label>
                 <Input
                   id="borrow-date"
                   type="date"
+                  max={todayInManila()}
                   value={borrowDate}
                   onChange={(event) => setBorrowDate(event.target.value)}
-                  disabled={isSubmitting}
+                  disabled={isRecording}
                   required
                 />
               </div>
@@ -471,29 +476,35 @@ export function CreateRequestPage() {
                   min={borrowDate || undefined}
                   value={expectedReturnDate}
                   onChange={(event) => setExpectedReturnDate(event.target.value)}
-                  disabled={isSubmitting}
+                  disabled={isRecording}
                   required
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="request-purpose">Purpose *</Label>
+                <Label htmlFor="student-contact">Contact information (optional)</Label>
+                <Input id="student-contact" value={contactDetails} maxLength={200}
+                  onChange={(event) => setContactDetails(event.target.value)} disabled={isRecording}
+                  placeholder="Phone number or email" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="borrowing-purpose">Purpose *</Label>
                 <textarea
-                  id="request-purpose"
+                  id="borrowing-purpose"
                   value={purpose}
                   onChange={(event) => setPurpose(event.target.value)}
-                  disabled={isSubmitting}
+                  disabled={isRecording}
                   rows={4}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   required
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="request-notes">Additional notes</Label>
+                <Label htmlFor="borrowing-notes">Additional notes</Label>
                 <textarea
-                  id="request-notes"
+                  id="borrowing-notes"
                   value={additionalNotes}
                   onChange={(event) => setAdditionalNotes(event.target.value)}
-                  disabled={isSubmitting}
+                  disabled={isRecording}
                   rows={3}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 />
@@ -505,7 +516,7 @@ export function CreateRequestPage() {
                 Back to items
               </Button>
               <Button type="button" onClick={continueToReview}>
-                Review request
+                Review checkout
                 <ChevronRight aria-hidden="true" />
               </Button>
             </CardFooter>
@@ -519,18 +530,19 @@ export function CreateRequestPage() {
                 <ClipboardCheck className="size-5" aria-hidden="true" />
               </span>
               <div>
-                <CardTitle>Review your request</CardTitle>
+                <CardTitle>Review the borrowing</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Confirm these details before submitting.
+                  Confirm the equipment being handed to the student. Recording deducts stock immediately.
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <dl className="grid gap-4 rounded-xl border bg-muted/30 p-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Requester</dt>
-                  <dd className="mt-1 font-medium">{requesterName}</dd>
-                  <dd className="text-sm text-muted-foreground">{requesterPosition}</dd>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Student</dt>
+                  <dd className="mt-1 font-medium">{borrowerName}</dd>
+                  <dd className="text-sm text-muted-foreground">Student ID: {studentId}</dd>
+                  {contactDetails ? <dd className="text-sm text-muted-foreground">{contactDetails}</dd> : null}
                 </div>
                 <div>
                   <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Borrow period</dt>
@@ -552,7 +564,7 @@ export function CreateRequestPage() {
 
               <div>
                 <h2 className="font-heading text-base font-semibold">
-                  Requested items ({selectedItems.length})
+                  Borrowed items ({selectedItems.length})
                 </h2>
                 <div className="mt-3 divide-y rounded-xl border">
                   {selectedItems.map((selection) => (
@@ -572,13 +584,13 @@ export function CreateRequestPage() {
               </div>
             </CardContent>
             <CardFooter className="flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:justify-between">
-              <Button type="button" variant="outline" onClick={() => showStep(2)} disabled={isSubmitting}>
+              <Button type="button" variant="outline" onClick={() => showStep(2)} disabled={isRecording}>
                 <ChevronLeft aria-hidden="true" />
                 Edit details
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
-                {isSubmitting ? 'Submitting…' : 'Submit request'}
+              <Button type="submit" disabled={isRecording}>
+                {isRecording ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
+                {isRecording ? 'Recording…' : 'Record checkout'}
               </Button>
             </CardFooter>
           </Card>

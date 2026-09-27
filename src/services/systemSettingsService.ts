@@ -6,8 +6,8 @@ export interface SystemSettingsInput {
 }
 
 export const systemSettingsService = {
-  async get(_signal?: AbortSignal): Promise<SystemSettings> {
-    const { data, error } = await supabase
+  async get(signal?: AbortSignal): Promise<SystemSettings> {
+    let query = supabase
       .from('system_settings')
       .select(`
         id,
@@ -19,7 +19,8 @@ export const systemSettingsService = {
         )
       `)
       .eq('id', 'siteao')
-      .single()
+    if (signal) query = query.abortSignal(signal)
+    const { data, error } = await query.single()
 
     if (error || !data) {
       return {

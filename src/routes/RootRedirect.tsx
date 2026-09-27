@@ -11,5 +11,5 @@ export function RootRedirect() {
     return <PageLoading label="Opening El Consejo Atenista" />
   }
 
-  return <Navigate to={user ? getHomePath(user.role) : '/login'} replace />
+  return <Navigate to={user ? getHomePath() : '/login'} replace />
 }

@@ -47,7 +47,7 @@ function escapeCsvValue(value: string | number | null | undefined): string {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
-async function fetchReportDataset(filters: InventoryReportFilters) {
+async function fetchReportDataset(filters: InventoryReportFilters, signal?: AbortSignal) {
   // Fetch system settings for Governor name
   const { data: settings } = await supabase
     .from('system_settings')
@@ -67,6 +67,7 @@ async function fetchReportDataset(filters: InventoryReportFilters) {
       description,
       total_quantity,
       available_quantity,
+      damaged_quantity,
       condition,
       storage_location,
       is_active,
@@ -98,6 +99,7 @@ async function fetchReportDataset(filters: InventoryReportFilters) {
   const sortCol = SORT_FIELD_MAP[filters.sortBy] || 'item_name'
   query = query.order(sortCol, { ascending: filters.sortOrder === 'asc' })
 
+  if (signal) query = query.abortSignal(signal)
   const { data, error } = await query
 
   if (error) {
@@ -109,15 +111,17 @@ async function fetchReportDataset(filters: InventoryReportFilters) {
   let totalQty = 0
   let availQty = 0
   let borrowedQty = 0
+  let damagedQty = 0
 
   const items: InventoryReportItem[] = rawItems.map((r) => {
     const total = r.total_quantity
     const available = r.available_quantity
-    const borrowed = Math.max(0, total - available)
+    const borrowed = Math.max(0, total - available - r.damaged_quantity)
 
     totalQty += total
     availQty += available
     borrowedQty += borrowed
+    damagedQty += r.damaged_quantity
 
     return {
       id: r.id,
@@ -128,6 +132,7 @@ async function fetchReportDataset(filters: InventoryReportFilters) {
       quantity: total,
       availableQuantity: available,
       borrowedQuantity: borrowed,
+      damagedQuantity: r.damaged_quantity,
       category: r.category as { id: string; name: string },
       storageLocation: r.storage_location,
       isActive: r.is_active,
@@ -150,14 +155,15 @@ async function fetchReportDataset(filters: InventoryReportFilters) {
     totalQuantity: totalQty,
     availableQuantity: availQty,
     borrowedQuantity: borrowedQty,
+    damagedQuantity: damagedQty,
   }
 
   return { metadata, summary, items }
 }
 
 export const inventoryReportService = {
-  async get(params: InventoryReportPreviewParams, _signal?: AbortSignal): Promise<InventoryReportResponse> {
-    const { metadata, summary, items } = await fetchReportDataset(params)
+  async get(params: InventoryReportPreviewParams, signal?: AbortSignal): Promise<InventoryReportResponse> {
+    const { metadata, summary, items } = await fetchReportDataset(params, signal)
 
     const from = (params.page - 1) * params.limit
     const paginatedItems = items.slice(from, from + params.limit)
@@ -188,6 +194,7 @@ export const inventoryReportService = {
       'Total Quantity',
       'Available Quantity',
       'Borrowed Quantity',
+      'Damaged Quantity',
       'Storage Location',
       'Status',
     ]
@@ -201,6 +208,7 @@ export const inventoryReportService = {
         i.quantity,
         i.availableQuantity,
         i.borrowedQuantity,
+        i.damagedQuantity,
         escapeCsvValue(i.storageLocation),
         i.isActive ? 'Active' : 'Inactive',
       ].join(','),
@@ -249,7 +257,8 @@ export const inventoryReportService = {
     doc.text(`Total Distinct Items: ${summary.distinctItems}`, 20, 52)
     doc.text(`Total Units: ${summary.totalQuantity}`, 70, 52)
     doc.text(`Available: ${summary.availableQuantity}`, 120, 52)
-    doc.text(`Borrowed: ${summary.borrowedQuantity}`, 160, 52)
+    doc.text(`Borrowed: ${summary.borrowedQuantity}`, 120, 56)
+    doc.text(`Damaged: ${summary.damagedQuantity}`, 160, 56)
 
     // Table
     const tableBody = items.map((i) => [
@@ -260,6 +269,7 @@ export const inventoryReportService = {
       String(i.quantity),
       String(i.availableQuantity),
       String(i.borrowedQuantity),
+      String(i.damagedQuantity),
       i.storageLocation,
     ])
 
@@ -274,6 +284,7 @@ export const inventoryReportService = {
           'Total',
           'Avail',
           'Borrowed',
+          'Damaged',
           'Location',
         ],
       ],

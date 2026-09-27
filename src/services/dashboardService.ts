@@ -10,10 +10,6 @@ export interface RecentActivity {
     id: string
     username: string
   } | null
-  committee: {
-    id: string
-    name: string
-  } | null
   createdAt: string
 }
 
@@ -22,34 +18,23 @@ export interface AdminDashboardSummary {
   totalInventoryQuantity: number
   availableQuantity: number
   borrowedQuantity: number
-  pendingRequests: number
-  approvedOrActiveBorrowings: number
+  activeBorrowings: number
   overdueBorrowings: number
   returnedToday: number
-  activeCommittees: number
-  activeCommitteeAccounts: number
-  activeCategories: number
-}
-
-export interface CommitteeDashboardSummary {
-  availableInventoryItems: number
-  availableQuantity: number
-  myPendingRequests: number
-  myApprovedOrActiveBorrowings: number
-  myOverdueBorrowings: number
-  myReturnedRequests: number
-  myTotalRequests: number
+  damagedQuantity: number
 }
 
 export interface DashboardData {
-  summary: AdminDashboardSummary | CommitteeDashboardSummary
+  summary: AdminDashboardSummary
   recentActivity: RecentActivity[]
   generatedAt: string
 }
 
 export const dashboardService = {
   async getDashboard(_signal?: AbortSignal): Promise<DashboardData> {
-    const { data, error } = await supabase.rpc('get_dashboard_metrics')
+    let query = supabase.rpc('get_dashboard_metrics')
+    if (_signal) query = query.abortSignal(_signal)
+    const { data, error } = await query
 
     if (error) {
       throw error

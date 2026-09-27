@@ -168,9 +168,6 @@ export function AuditLogsPage() {
       render: (log) => (
         <div>
           <p className="font-medium">{log.user?.username ?? 'System'}</p>
-          {log.committee ? (
-            <p className="text-xs text-muted-foreground">{log.committee.name}</p>
-          ) : null}
         </div>
       ),
     },
@@ -355,12 +352,6 @@ export function AuditLogsPage() {
                   <dt className="text-xs text-muted-foreground">Entity ID</dt>
                   <dd className="mt-1 break-all font-mono text-xs">
                     {selectedLog.entityId ?? 'Not recorded'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Committee</dt>
-                  <dd className="mt-1">
-                    {selectedLog.committee?.name ?? 'Not associated'}
                   </dd>
                 </div>
                 <div>

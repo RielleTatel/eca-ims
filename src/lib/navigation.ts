@@ -1,13 +1,11 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Boxes,
-  ClipboardClock,
   ClipboardList,
   FileBarChart,
   FolderTree,
   LayoutDashboard,
   NotebookTabs,
-  PackagePlus,
   Settings,
   ShieldCheck,
 } from 'lucide-react'
@@ -33,8 +31,8 @@ export const navigationByRole: Record<UserRole, NavigationItem[]> = {
     },
     { label: 'Inventory', to: '/logistics/inventory', icon: Boxes, section: 'Operations' },
     {
-      label: 'Borrowing Requests',
-      to: '/logistics/requests',
+      label: 'Borrowings',
+      to: '/logistics/borrowings',
       icon: ClipboardList,
       section: 'Operations',
     },
@@ -54,30 +52,8 @@ export const navigationByRole: Record<UserRole, NavigationItem[]> = {
       section: 'Administration',
     },
   ],
-  COMMITTEE: [
-    {
-      label: 'Dashboard',
-      to: '/committee/dashboard',
-      icon: LayoutDashboard,
-      section: 'Overview',
-      end: true,
-    },
-    { label: 'Inventory', to: '/committee/inventory', icon: Boxes, section: 'Borrowing' },
-    {
-      label: 'New Request',
-      to: '/committee/requests/new',
-      icon: PackagePlus,
-      section: 'Borrowing',
-    },
-    {
-      label: 'My Requests',
-      to: '/committee/requests/history',
-      icon: ClipboardClock,
-      section: 'Borrowing',
-    },
-  ],
 }
 
-export function getHomePath(role: UserRole) {
-  return role === 'SUPER_ADMIN' ? '/logistics/dashboard' : '/committee/dashboard'
+export function getHomePath() {
+  return '/logistics/dashboard'
 }

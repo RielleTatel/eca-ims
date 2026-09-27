@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- SITEAO OpsTracker (ECA-IMS) - Supabase Seed Data
--- Default System Settings, Committees, Categories
+-- Default System Settings, Categories
 -- ==============================================================================
 
 -- 1. System Settings
@@ -9,17 +9,7 @@ values ('siteao', 'HON. JHERMIE P. LICAROS')
 on conflict (id) do update set
   siteao_governor_name = excluded.siteao_governor_name;
 
--- 2. Default Committees
-insert into public.committees (id, name, description, is_active)
-values
-  ('11111111-1111-1111-1111-111111111101', 'Executive Committee', 'Student Organization Executive Leadership', true),
-  ('11111111-1111-1111-1111-111111111102', 'Logistics Committee', 'Equipment handling, logistics and inventory management', true),
-  ('11111111-1111-1111-1111-111111111103', 'Finance Committee', 'Budgeting and fiscal documentation', true),
-  ('11111111-1111-1111-1111-111111111104', 'Documentation Committee', 'Media, photo, video, and documentation', true),
-  ('11111111-1111-1111-1111-111111111105', 'Academics Committee', 'Academic events and student learning initiatives', true)
-on conflict (name) do nothing;
-
--- 3. Default Categories
+-- 2. Default Categories
 insert into public.categories (id, name, description, is_active)
 values
   ('22222222-2222-2222-2222-222222222201', 'Audio & Visual', 'Projectors, speakers, microphones, and displays', true),

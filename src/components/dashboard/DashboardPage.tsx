@@ -1,11 +1,7 @@
-import axios from 'axios'
 import {
   Boxes,
-  ClipboardClock,
-  ClipboardList,
+  TriangleAlert,
   PackageCheck,
-  PackageOpen,
-  Users,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -23,7 +19,6 @@ import { getApiErrorMessage } from '@/services/api'
 import {
   dashboardService,
   type AdminDashboardSummary,
-  type CommitteeDashboardSummary,
   type DashboardData,
 } from '@/services/dashboardService'
 
@@ -37,58 +32,25 @@ function getAdminMetrics(summary?: AdminDashboardSummary): DashboardMetric[] {
       href: '/logistics/inventory',
     },
     {
-      label: 'Pending Requests',
-      icon: ClipboardList,
-      value: summary?.pendingRequests ?? 0,
-      detail: 'Awaiting administrator review',
-      href: '/logistics/requests',
+      label: 'Overdue Borrowings',
+      icon: TriangleAlert,
+      value: summary?.overdueBorrowings ?? 0,
+      detail: 'Past the expected return date',
+      href: '/logistics/borrowings?status=overdue',
     },
     {
       label: 'Active Borrowings',
       icon: PackageCheck,
-      value: summary?.approvedOrActiveBorrowings ?? 0,
+      value: summary?.activeBorrowings ?? 0,
       detail: `${summary?.overdueBorrowings ?? 0} currently overdue`,
-      href: '/logistics/transactions',
+      href: '/logistics/borrowings',
     },
     {
-      label: 'Committee Accounts',
-      icon: Users,
-      value: summary?.activeCommitteeAccounts ?? 0,
-      detail: `${summary?.activeCommittees ?? 0} active committees`,
-      href: '/logistics/settings',
-    },
-  ]
-}
-
-function getCommitteeMetrics(summary?: CommitteeDashboardSummary): DashboardMetric[] {
-  return [
-    {
-      label: 'Available Items',
-      icon: Boxes,
-      value: summary?.availableInventoryItems ?? 0,
-      detail: `${summary?.availableQuantity ?? 0} units available`,
-      href: '/committee/inventory',
-    },
-    {
-      label: 'Pending Requests',
-      icon: ClipboardClock,
-      value: summary?.myPendingRequests ?? 0,
-      detail: 'Waiting for review',
-      href: '/committee/requests/history',
-    },
-    {
-      label: 'Active Borrowings',
-      icon: PackageOpen,
-      value: summary?.myApprovedOrActiveBorrowings ?? 0,
-      detail: `${summary?.myOverdueBorrowings ?? 0} currently overdue`,
-      href: '/committee/requests/history',
-    },
-    {
-      label: 'Returned Requests',
+      label: 'Returned Today',
       icon: PackageCheck,
-      value: summary?.myReturnedRequests ?? 0,
-      detail: `${summary?.myTotalRequests ?? 0} total requests`,
-      href: '/committee/requests/history',
+      value: summary?.returnedToday ?? 0,
+      detail: `${summary?.damagedQuantity ?? 0} damaged units awaiting repair`,
+      href: '/logistics/borrowings?status=returned',
     },
   ]
 }
@@ -104,9 +66,9 @@ export function DashboardPage() {
 
     dashboardService
       .getDashboard(controller.signal)
-      .then(setDashboard)
+      .then((result) => { if (!controller.signal.aborted) setDashboard(result) })
       .catch((dashboardError: unknown) => {
-        if (!axios.isCancel(dashboardError)) {
+        if (!controller.signal.aborted) {
           setError(getApiErrorMessage(dashboardError, 'Dashboard data could not be loaded.'))
         }
       })
@@ -118,11 +80,7 @@ export function DashboardPage() {
     return null
   }
 
-  const isAdmin = user.role === 'SUPER_ADMIN'
-  const summary = dashboard?.summary
-  const metrics = isAdmin
-    ? getAdminMetrics(summary as AdminDashboardSummary | undefined)
-    : getCommitteeMetrics(summary as CommitteeDashboardSummary | undefined)
+  const metrics = getAdminMetrics(dashboard?.summary)
 
   function retryDashboard() {
     setError(null)
@@ -133,12 +91,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={isAdmin ? 'Logistics Dashboard' : 'Committee Dashboard'}
-        description={
-          isAdmin
-            ? 'A live overview of ECA inventory, borrowing activity, and committee access.'
-            : `A live overview of ${user.committee?.name ?? 'your committee'} requests and borrowed items.`
-        }
+        title="Logistics Dashboard"
+        description="A live overview of ECA inventory, student borrowings, and returns."
       />
       {error ? (
         <FullPageError

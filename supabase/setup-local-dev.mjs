@@ -10,39 +10,6 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 const DEFAULT_PASSWORD = 'Password123!'
 
-const COMMITTEE_ACCOUNTS = [
-  {
-    username: 'executive',
-    email: 'executive@siteao.local',
-    committeeKeyword: 'executive',
-    displayName: 'Executive Committee',
-  },
-  {
-    username: 'logistics',
-    email: 'logistics@siteao.local',
-    committeeKeyword: 'logistics',
-    displayName: 'Logistics Committee',
-  },
-  {
-    username: 'finance',
-    email: 'finance@siteao.local',
-    committeeKeyword: 'finance',
-    displayName: 'Finance Committee',
-  },
-  {
-    username: 'documentation',
-    email: 'documentation@siteao.local',
-    committeeKeyword: 'documentation',
-    displayName: 'Documentation Committee',
-  },
-  {
-    username: 'academics',
-    email: 'academics@siteao.local',
-    committeeKeyword: 'academics',
-    displayName: 'Academics Committee',
-  },
-]
-
 async function setupLocalUsers() {
   console.log('====================================================')
   console.log('  SITEAO OpsTracker - Local Account & Data Provisioner')
@@ -90,66 +57,6 @@ async function setupLocalUsers() {
     throw new Error(`Failed to upsert admin profile: ${adminProfErr.message}`)
   }
   console.log('   ✅ Super Admin profile synchronized.\n')
-
-  // 2. Fetch All Active Committees
-  const { data: committees, error: commErr } = await supabase
-    .from('committees')
-    .select('id, name')
-    .order('name')
-
-  if (commErr || !committees) {
-    throw new Error(`Failed to fetch committees: ${commErr?.message}`)
-  }
-
-  // 3. Provision Committee Accounts
-  console.log('🏢 Provisioning Committee Accounts...')
-  for (const acc of COMMITTEE_ACCOUNTS) {
-    const committee = committees.find((c) =>
-      c.name.toLowerCase().includes(acc.committeeKeyword)
-    )
-
-    if (!committee) {
-      console.warn(`   ⚠️ Committee not found for keyword: ${acc.committeeKeyword}`)
-      continue
-    }
-
-    let user = usersList?.users?.find((u) => u.email === acc.email)
-
-    if (!user) {
-      const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
-        email: acc.email,
-        password: DEFAULT_PASSWORD,
-        email_confirm: true,
-        user_metadata: { role: 'COMMITTEE', username: acc.username },
-      })
-      if (createErr) {
-        console.error(`   ❌ Failed to create user ${acc.username}:`, createErr.message)
-        continue
-      }
-      user = newUser.user
-      console.log(`   ✅ Created account: [${acc.username}] -> ${committee.name}`)
-    } else {
-      // Ensure password is synchronized
-      await supabase.auth.admin.updateUserById(user.id, {
-        password: DEFAULT_PASSWORD,
-        email_confirm: true,
-      })
-      console.log(`   ✅ Account exists: [${acc.username}] -> ${committee.name} [password verified]`)
-    }
-
-    // Upsert Committee Profile
-    const { error: profErr } = await supabase.from('profiles').upsert({
-      id: user.id,
-      username: acc.username,
-      role: 'COMMITTEE',
-      committee_id: committee.id,
-      is_active: true,
-    })
-
-    if (profErr) {
-      console.error(`   ❌ Failed to sync profile for ${acc.username}:`, profErr.message)
-    }
-  }
 
   // 4. Provision Realistic Inventory Items
   console.log('\n📦 Checking Inventory Items...')
@@ -307,7 +214,7 @@ async function setupLocalUsers() {
   for (const item of sampleItems) {
     const { error: itemErr } = await supabase
       .from('items')
-      .upsert(item, { onConflict: 'item_code' })
+      .upsert(item, { onConflict: 'item_code', ignoreDuplicates: true })
 
     if (itemErr) {
       console.error(`   ❌ Failed to upsert ${item.item_code}:`, itemErr.message)
@@ -320,15 +227,7 @@ async function setupLocalUsers() {
   console.log('====================================================')
   console.log('  PROVISIONING COMPLETE! You can now log in:')
   console.log('====================================================')
-  console.log('Default Password for all accounts: Password123!\n')
-  console.log('  Role         | Username       | Committee')
-  console.log('  -------------+----------------+------------------------------')
-  console.log('  SUPER_ADMIN  | admin          | System-wide Administrator')
-  console.log('  COMMITTEE    | executive      | Executive Committee')
-  console.log('  COMMITTEE    | logistics      | Logistics Committee')
-  console.log('  COMMITTEE    | finance        | Finance Committee')
-  console.log('  COMMITTEE    | documentation  | Documentation Committee')
-  console.log('  COMMITTEE    | academics      | Academics Committee')
+  console.log('Administrator: admin@siteao.local / Password123!')
   console.log('====================================================\n')
 }
 

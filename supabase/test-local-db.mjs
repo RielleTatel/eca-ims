@@ -1,140 +1,79 @@
+import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'http://127.0.0.1:54321'
-const ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+// Local-only Supabase demo credentials, shared with the development provisioner.
+const setup = await readFile(new URL('./setup-local-dev.mjs', import.meta.url), 'utf8')
+const serviceKey = setup.match(/const SERVICE_KEY =\s*'([^']+)'/)?.[1]
+if (!serviceKey) throw new Error('Local development service key was not found.')
+const url = 'http://127.0.0.1:54321'
+const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+const options = { auth: { persistSession: false, autoRefreshToken: false } }
+const admin = createClient(url, anonKey, options)
+const anonymous = createClient(url, anonKey, options)
+const fixtures = createClient(url, serviceKey, options)
+const itemId = randomUUID()
+let borrowingId
+let itemCreated = false
 
-async function runLocalE2ETest() {
-  console.log('🧪 Starting Local Supabase PostgreSQL E2E Verification...\n')
-
-  // 1. Initialize Client
-  const client = createClient(SUPABASE_URL, ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
-
-  // 2. Test Admin Login
-  console.log('1️⃣ Testing Admin Authentication...')
-  const { data: adminAuth, error: adminAuthErr } = await client.auth.signInWithPassword({
-    email: 'admin@siteao.local',
-    password: 'Password123!',
-  })
-  if (adminAuthErr) {
-    throw new Error(`Admin login failed: ${adminAuthErr.message}`)
-  }
-  console.log('   ✅ Admin logged in successfully! User ID:', adminAuth.user.id)
-
-  // 3. Query Profiles as Admin
-  console.log('\n2️⃣ Querying Profiles Table...')
-  const { data: profiles, error: profErr } = await client.from('profiles').select('id, username, role')
-  if (profErr) {
-    throw new Error(`Query profiles failed: ${profErr.message}`)
-  }
-  console.log(`   ✅ Retrieved ${profiles.length} profiles:`, profiles.map((p) => `${p.username} (${p.role})`).join(', '))
-
-  // 4. Query Items Table
-  console.log('\n3️⃣ Querying Items Table from local Postgres...')
-  const { data: items, error: itemsErr } = await client
-    .from('items')
-    .select('id, item_code, item_name, available_quantity, total_quantity')
-  if (itemsErr) {
-    throw new Error(`Query items failed: ${itemsErr.message}`)
-  }
-  console.log(`   ✅ Retrieved ${items.length} items from local database:`)
-  items.forEach((it) => console.log(`      - [${it.item_code}] ${it.item_name} (Qty: ${it.available_quantity}/${it.total_quantity})`))
-
-  // 5. Test RPC `get_dashboard_metrics`
-  console.log('\n4️⃣ Testing RPC: get_dashboard_metrics...')
-  const { data: metrics, error: rpcErr } = await client.rpc('get_dashboard_metrics')
-  if (rpcErr) {
-    throw new Error(`get_dashboard_metrics RPC failed: ${rpcErr.message}`)
-  }
-  console.log('   ✅ Dashboard metrics returned successfully:', metrics)
-
-  // 6. Test Committee Login & Borrowing
-  console.log('\n5️⃣ Testing Committee Authentication & Request Submission...')
-  const committeeClient = createClient(SUPABASE_URL, ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
-  const { data: commAuth, error: commAuthErr } = await committeeClient.auth.signInWithPassword({
-    email: 'logistics@siteao.local',
-    password: 'Password123!',
-  })
-  if (commAuthErr) {
-    throw new Error(`Committee login failed: ${commAuthErr.message}`)
-  }
-  console.log('   ✅ Logistics Committee logged in successfully!')
-
-  const targetItem = items[0]
-  const today = new Date().toISOString().split('T')[0]
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
-
-  console.log(`   Submitting borrowing request for 1 unit of "${targetItem.item_name}"...`)
-  const { data: requestResult, error: borrowErr } = await committeeClient.rpc('create_borrowing_request', {
-    p_requester_name: 'Juan Dela Cruz',
-    p_requester_position: 'Logistics Head',
-    p_purpose: 'Local Postgres Verification Test',
-    p_borrow_date: today,
-    p_expected_return_date: tomorrow,
-    p_additional_notes: 'Created via local automated verification',
-    p_items: [{ itemId: targetItem.id, quantity: 1 }],
-  })
-
-  if (borrowErr) {
-    throw new Error(`create_borrowing_request RPC failed: ${borrowErr.message}`)
-  }
-  const newRequestId = requestResult?.id
-  console.log('   ✅ Borrowing request created! Request ID:', newRequestId)
-
-  // 7. Approve as Admin
-  console.log('\n6️⃣ Approving Request via Admin RPC...')
-  const { error: approveErr } = await client.rpc('approve_borrowing_request', {
-    p_request_id: newRequestId,
-    p_remarks: 'Approved locally by automated test',
-  })
-  if (approveErr) {
-    throw new Error(`approve_borrowing_request RPC failed: ${approveErr.message}`)
-  }
-  console.log('   ✅ Request approved!')
-
-  // 8. Verify Inventory Decremented
-  console.log('\n7️⃣ Verifying Inventory Balance in PostgreSQL...')
-  const { data: updatedItem, error: checkErr } = await client
-    .from('items')
-    .select('item_code, available_quantity, total_quantity')
-    .eq('id', targetItem.id)
-    .single()
-  if (checkErr) {
-    throw new Error(`Failed to check updated item: ${checkErr.message}`)
-  }
-  console.log(`   ✅ Item "${updatedItem.item_code}" available quantity updated to: ${updatedItem.available_quantity} (Initial was ${targetItem.available_quantity})`)
-
-  if (updatedItem.available_quantity !== targetItem.available_quantity - 1) {
-    throw new Error('Stock balance did not decrement properly!')
-  }
-
-  // 9. Return Request to restore balance
-  console.log('\n8️⃣ Testing Return Request RPC...')
-  const { error: returnErr } = await client.rpc('return_borrowing_request', {
-    p_request_id: newRequestId,
-    p_condition: 'GOOD',
-    p_notes: 'Returned during automated test',
-  })
-  if (returnErr) {
-    throw new Error(`return_borrowing_request RPC failed: ${returnErr.message}`)
-  }
-  console.log('   ✅ Items returned and restocked!')
-
-  const { data: restoredItem } = await client
-    .from('items')
-    .select('available_quantity')
-    .eq('id', targetItem.id)
-    .single()
-  console.log(`   ✅ Item restored available quantity: ${restoredItem?.available_quantity}`)
-
-  console.log('\n🎉 ALL LOCAL POSTGRESQL & SUPABASE TESTS PASSED 100% SUCCESSFULLY!')
+function checked(result) {
+  if (result.error) throw result.error
+  return result.data
 }
 
-runLocalE2ETest().catch((err) => {
-  console.error('\n❌ Local Verification Failed:', err)
-  process.exit(1)
-})
+async function run() {
+  const auth = checked(await admin.auth.signInWithPassword({ email: 'admin@siteao.local', password: 'Password123!' }))
+  const category = checked(await admin.from('categories').select('id').eq('is_active', true).limit(1).single())
+  checked(await fixtures.from('items').insert({ id: itemId, item_code: `TEST-${itemId}`, item_name: 'Automated borrowing fixture', category_id: category.id, total_quantity: 5, available_quantity: 5, storage_location: 'Automated test', created_by: auth.user.id }))
+  itemCreated = true
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  const borrowing = checked(await admin.rpc('record_borrowing', {
+    p_borrower_name: 'Automated Test Student', p_student_id: 'TEST-STUDENT', p_contact_details: null,
+    p_purpose: 'Borrowing integration verification', p_borrow_date: today, p_expected_return_date: today,
+    p_additional_notes: 'Temporary test record', p_items: [{ itemId, quantity: 3 }],
+  }))
+  borrowingId = borrowing.id
+  assert.equal(checked(await admin.from('items').select('available_quantity').eq('id', itemId).single()).available_quantity, 2)
+  assert.equal(checked(await anonymous.from('borrowings').select('id').eq('id', borrowingId)).length, 0)
+  assert.ok((await admin.from('borrowings').update({ status: 'RETURNED' }).eq('id', borrowingId)).error)
+  const line = checked(await admin.from('borrowing_items').select('id').eq('borrowing_id', borrowingId).single())
+  checked(await admin.rpc('record_borrowing_return', { p_borrowing_id: borrowingId, p_returns: [
+    { borrowingItemId: line.id, quantity: 1, condition: 'GOOD' },
+    { borrowingItemId: line.id, quantity: 1, condition: 'DAMAGED', notes: 'Test damage' },
+  ] }))
+  assert.equal(checked(await admin.from('borrowings').select('status').eq('id', borrowingId).single()).status, 'ACTIVE')
+  checked(await admin.rpc('record_borrowing_return', { p_borrowing_id: borrowingId, p_returns: [{ borrowingItemId: line.id, quantity: 1, condition: 'LOST' }] }))
+  const details = checked(await admin.from('borrowings').select(`
+    status, recorder:profiles!borrowings_recorded_by_fkey(username),
+    items:borrowing_items(id, item:items(item_name, category:categories(name)), returns:borrowing_returns(quantity, condition, recorder:profiles!borrowing_returns_recorded_by_fkey(username)))
+  `).eq('id', borrowingId).single())
+  assert.equal(details.status, 'RETURNED')
+  assert.equal(details.items[0].returns.length, 3)
+  const stock = checked(await admin.from('items').select('total_quantity, available_quantity, damaged_quantity').eq('id', itemId).single())
+  assert.deepEqual(stock, { total_quantity: 4, available_quantity: 3, damaged_quantity: 1 })
+  checked(await admin.rpc('repair_inventory_units', { p_item_id: itemId, p_quantity: 1 }))
+  assert.equal(checked(await admin.from('items').select('available_quantity').eq('id', itemId).single()).available_quantity, 4)
+  assert.ok(checked(await admin.rpc('get_dashboard_metrics')).summary)
+  console.log('PASS: Supabase admin authentication, checkout, private records, direct-write protection, mixed/partial returns, stock balances, repair, embedded history, and dashboard.')
+}
+
+async function cleanup() {
+  if (borrowingId) {
+    const lines = checked(await fixtures.from('borrowing_items').select('id').eq('borrowing_id', borrowingId))
+    if (lines.length) checked(await fixtures.from('borrowing_returns').delete().in('borrowing_item_id', lines.map((line) => line.id)))
+    checked(await fixtures.from('inventory_transactions').delete().eq('borrowing_id', borrowingId))
+    checked(await fixtures.from('audit_logs').delete().eq('entity_id', borrowingId))
+    checked(await fixtures.from('borrowing_items').delete().eq('borrowing_id', borrowingId))
+    checked(await fixtures.from('borrowings').delete().eq('id', borrowingId))
+  }
+  if (itemCreated) {
+    checked(await fixtures.from('inventory_transactions').delete().eq('item_id', itemId))
+    checked(await fixtures.from('audit_logs').delete().eq('entity_id', itemId))
+    checked(await fixtures.from('items').delete().eq('id', itemId))
+  }
+}
+
+try { await run() }
+catch (error) { console.error('Local Supabase verification failed:', error.message); process.exitCode = 1 }
+finally { await cleanup().catch((error) => { console.error('Temporary test fixture cleanup failed:', error.message); process.exitCode = 1 }) }

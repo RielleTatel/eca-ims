@@ -1,15 +1,11 @@
 import { createContext } from 'react'
 
-export type UserRole = 'SUPER_ADMIN' | 'COMMITTEE'
+export type UserRole = 'SUPER_ADMIN'
 
 export interface AuthUser {
   id: string
   username: string
   role: UserRole
-  committee: {
-    id: string
-    name: string
-  } | null
 }
 
 export interface AuthContextValue {

@@ -14,7 +14,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ navigation, user, className, onNavigate }: AppSidebarProps) {
-  const workspace = user.role === 'SUPER_ADMIN' ? 'Administration' : 'Committee'
+  const workspace = 'Administration'
   const navigationGroups = navigation.reduce<
     Array<{ label: NavigationItem['section']; items: NavigationItem[] }>
   >((groups, item) => {
@@ -85,13 +85,13 @@ export function AppSidebar({ navigation, user, className, onNavigate }: AppSideb
       <div className="mt-auto border-t border-sidebar-foreground/10 p-4">
         <p className="truncate text-sm font-semibold">{user.username}</p>
         <p className="mt-0.5 truncate text-xs text-sidebar-foreground/55">
-          {user.committee?.name ?? 'El Consejo Atenista'}
+          El Consejo Atenista
         </p>
         <Badge
           variant="secondary"
           className="mt-2 border border-brand-gold/25 bg-brand-gold/10 text-brand-gold"
         >
-          {user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Committee'}
+          Admin
         </Badge>
       </div>
     </aside>

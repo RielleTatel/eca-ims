@@ -13,13 +13,7 @@ export interface Pagination {
 
 export type SortOrder = 'asc' | 'desc'
 export type ItemCondition = 'GOOD' | 'FAIR' | 'DAMAGED' | 'UNDER_REPAIR' | 'LOST'
-export type RequestStatus =
-  | 'PENDING'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'CANCELLED'
-  | 'BORROWED'
-  | 'RETURNED'
+export type BorrowingStatus = 'ACTIVE' | 'RETURNED' | 'ARCHIVED'
 export type ReturnCondition = 'GOOD' | 'FAIR' | 'DAMAGED' | 'LOST'
 export type TransactionType =
   | 'ITEM_ADDED'
@@ -36,28 +30,6 @@ export interface Category {
   name: string
   description: string | null
   isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-export interface Committee {
-  id: string
-  name: string
-  description: string | null
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-export interface CommitteeAccount {
-  id: string
-  username: string
-  role: 'COMMITTEE'
-  isActive: boolean
-  committee: {
-    id: string
-    name: string
-  } | null
   createdAt: string
   updatedAt: string
 }
@@ -80,6 +52,7 @@ export interface InventoryItem {
   description: string | null
   totalQuantity: number
   availableQuantity: number
+  damagedQuantity: number
   condition: ItemCondition
   storageLocation: string
   googleDriveFolderLink: string | null
@@ -92,124 +65,47 @@ export interface InventoryItem {
   }
 }
 
-export interface BorrowingRequestSummary {
+export interface BorrowingReturn {
   id: string
-  requestCode: string
-  committeeId: string
-  submittedBy: string
-  requesterName: string
-  requesterPosition: string
-  purpose: string
-  borrowDate: string
-  expectedReturnDate: string
-  status: RequestStatus
+  quantity: number
+  condition: ReturnCondition
+  notes: string | null
   createdAt: string
-  updatedAt: string
-  committee: {
-    id: string
-    name: string
-  }
-  submitter: {
-    id: string
-    username: string
-  }
-  itemCount: number
-  totalRequestedQuantity?: number
+  recordedBy: { id: string; username: string }
 }
 
-export interface BorrowingRequestDetails
-  extends Omit<BorrowingRequestSummary, 'itemCount' | 'totalRequestedQuantity'> {
-  itemCount?: number
-  totalRequestedQuantity?: number
-  additionalNotes: string | null
-  rejectionReason: string | null
-  approvedBy: string | null
-  approvedAt: string | null
-  rejectedBy: string | null
-  rejectedAt: string | null
-  returnedAt?: string | null
-  submittedAt: string
-  items: Array<{
-    id: string
-    itemId: string
-    quantityRequested: number
-    quantityApproved?: number | null
-    quantityReturned?: number
-    returnCondition?: ReturnCondition | null
-    returnNotes?: string | null
-    createdAt: string
-    item: {
-      id: string
-      itemCode: string
-      itemName: string
-      availableQuantity: number
-      condition: ItemCondition
-      isActive: boolean
-      category: {
-        id: string
-        name: string
-        isActive: boolean
-      }
-    }
-  }>
-}
-
-export interface BorrowingHistoryRecord {
+export interface BorrowingItem {
   id: string
-  requestCode: string
-  requesterName: string
-  requesterPosition: string
-  purpose: string
-  borrowDate: string
-  expectedReturnDate: string
-  returnedAt: string | null
-  status: RequestStatus
-  createdAt: string
-  updatedAt: string
-  committee: {
-    id: string
-    name: string
-  }
-  requestedBy: {
-    id: string
-    username: string
-  }
-  items: Array<{
-    id: string
-    itemId: string
-    itemCode: string
-    itemName: string
-    quantityRequested: number
-    returnCondition: string | null
-    remarks: string | null
-  }>
-}
-
-export interface ItemBorrowingHistoryEntry {
-  borrowingRequestId: string
-  requestCode: string
-  committee: {
-    id: string
-    name: string
-  }
-  requester: {
-    name: string
-    position: string
-    user: {
-      id: string
-      username: string
-    }
-  }
-  borrowDate: string
-  expectedReturnDate: string
-  returnedAt: string | null
-  status: RequestStatus
-  quantityRequested: number
-  quantityApproved: number | null
-  quantityReleased: number | null
+  itemId: string
+  quantityBorrowed: number
   quantityReturned: number
-  returnCondition: string | null
-  returnNotes: string | null
+  quantityLost: number
+  quantityDamaged: number
+  outstandingQuantity: number
+  item: { id: string; itemCode: string; itemName: string; categoryName: string }
+  returns: BorrowingReturn[]
+}
+
+export interface BorrowingRecord {
+  id: string
+  borrowingCode: string
+  borrowerName: string
+  studentId: string | null
+  contactDetails: string | null
+  purpose: string
+  borrowDate: string
+  expectedReturnDate: string
+  additionalNotes: string | null
+  status: BorrowingStatus
+  isLegacy: boolean
+  legacyStatus: string | null
+  borrowedAt: string | null
+  returnedAt: string | null
+  createdAt: string
+  updatedAt: string
+  recordedBy: { id: string; username: string }
+  items: BorrowingItem[]
+  outstandingQuantity: number
 }
 
 export interface InventoryTransactionRecord {
@@ -225,9 +121,9 @@ export interface InventoryTransactionRecord {
     itemCode: string
     itemName: string
   }
-  borrowingRequest: {
+  borrowing: {
     id: string
-    requestCode: string
+    borrowingCode: string
   } | null
   performer: {
     id: string
@@ -248,9 +144,5 @@ export interface AuditLogRecord {
   user: {
     id: string
     username: string
-  } | null
-  committee: {
-    id: string
-    name: string
   } | null
 }

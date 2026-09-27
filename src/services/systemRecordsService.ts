@@ -45,7 +45,7 @@ const AUDIT_SORT_MAP: Record<AuditLogListParams['sortBy'], string> = {
 export const systemRecordsService = {
   async inventoryTransactions(
     params: InventoryTransactionListParams,
-    _signal?: AbortSignal,
+    signal?: AbortSignal,
   ) {
     const { page, limit, search, transactionType, dateFrom, dateTo, sortBy, sortOrder } = params
     const from = (page - 1) * limit
@@ -67,9 +67,9 @@ export const systemRecordsService = {
           item_code,
           item_name
         ),
-        borrowing_request:borrowing_requests (
+        borrowing:borrowings (
           id,
-          request_code
+          borrowing_code
         ),
         performer:profiles (
           id,
@@ -98,6 +98,7 @@ export const systemRecordsService = {
     const sortCol = TX_SORT_MAP[sortBy] || 'created_at'
     query = query.order(sortCol, { ascending: sortOrder === 'asc' }).range(from, to)
 
+    if (signal) query = query.abortSignal(signal)
     const { data, count, error } = await query
 
     if (error) {
@@ -109,7 +110,7 @@ export const systemRecordsService = {
 
     const transactions: InventoryTransactionRecord[] = (data || []).map((row) => {
       const rawItem = row.item as unknown as { id: string; item_code: string; item_name: string } | null
-      const rawReq = row.borrowing_request as unknown as { id: string; request_code: string } | null
+      const rawReq = row.borrowing as unknown as { id: string; borrowing_code: string } | null
       const rawPerformer = row.performer as unknown as { id: string; username: string } | null
 
       return {
@@ -125,10 +126,10 @@ export const systemRecordsService = {
           itemCode: rawItem?.item_code || '',
           itemName: rawItem?.item_name || 'Item',
         },
-        borrowingRequest: rawReq
+        borrowing: rawReq
           ? {
               id: rawReq.id,
-              requestCode: rawReq.request_code,
+              borrowingCode: rawReq.borrowing_code,
             }
           : null,
         performer: {
@@ -148,7 +149,7 @@ export const systemRecordsService = {
     return { transactions, pagination }
   },
 
-  async auditLogs(params: AuditLogListParams, _signal?: AbortSignal) {
+  async auditLogs(params: AuditLogListParams, signal?: AbortSignal) {
     const { page, limit, search, action, entityType, dateFrom, dateTo, sortBy, sortOrder } = params
     const from = (page - 1) * limit
     const to = from + limit - 1
@@ -169,10 +170,6 @@ export const systemRecordsService = {
         user:profiles (
           id,
           username
-        ),
-        committee:committees (
-          id,
-          name
         )
       `,
         { count: 'exact' },
@@ -201,6 +198,7 @@ export const systemRecordsService = {
     const sortCol = AUDIT_SORT_MAP[sortBy] || 'created_at'
     query = query.order(sortCol, { ascending: sortOrder === 'asc' }).range(from, to)
 
+    if (signal) query = query.abortSignal(signal)
     const { data, count, error } = await query
 
     if (error) {
@@ -212,7 +210,6 @@ export const systemRecordsService = {
 
     const logs: AuditLogRecord[] = (data || []).map((row) => {
       const rawUser = row.user as unknown as { id: string; username: string } | null
-      const rawCommittee = row.committee as unknown as { id: string; name: string } | null
 
       return {
         id: row.id,
@@ -225,7 +222,6 @@ export const systemRecordsService = {
         ipAddress: row.ip_address,
         createdAt: row.created_at,
         user: rawUser,
-        committee: rawCommittee,
       }
     })
 
@@ -241,17 +237,15 @@ export const systemRecordsService = {
         actions: [
           'CREATE_ITEM',
           'UPDATE_ITEM',
-          'CREATE_BORROW_REQUEST',
-          'APPROVE_BORROW_REQUEST',
-          'REJECT_BORROW_REQUEST',
-          'PROCESS_RETURN',
-          'CREATE_COMMITTEE',
-          'UPDATE_COMMITTEE',
+          'RECORD_BORROWING',
+          'UPDATE_BORROWING',
+          'RECORD_RETURN',
+          'REPAIR_ITEM',
           'CREATE_CATEGORY',
           'UPDATE_CATEGORY',
           'UPDATE_SYSTEM_SETTINGS',
         ],
-        entityTypes: ['items', 'borrowing_requests', 'committees', 'categories', 'profiles', 'system_settings'],
+        entityTypes: ['items', 'borrowings', 'categories', 'profiles', 'system_settings'],
       },
     }
   },
